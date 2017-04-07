@@ -1,6 +1,6 @@
 [submodule "software/iniparser"]
-	path = software/iniparser
+	path = lib/iniparser
 	url = https://github.com/ndevilla/iniparser.git
 [submodule "software/libtp3"]
-	path = software/libtp3
+	path = lib/libtp3
 	url = https://github.com/ezfarm-farmcloud/libtp3.git
