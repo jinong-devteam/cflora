@@ -7,7 +7,7 @@ FarmOS는 [cflora](https://github.com/ezfarm-farmcloud/cflora)라는 (주)이지
 ## Feature highlights
 
 ### Dependency
-cflora 는 다음의 오픈소스를 사용하고 있습니다.
+FarmOS 는 다음의 오픈소스를 사용하고 있습니다.
 * [iniparser](https://github.com/ndevilla/iniparser)
 * [libtp3](https://github.com/ezfarm-farmcloud/libtp3)
 
