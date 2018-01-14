@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_connection.h
+ * \brief GOS 통신관련 해더 파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GOS_CONNECTION_H_
 #define _GOS_CONNECTION_H_
@@ -37,9 +42,9 @@ gos_release_conninfo (gos_conninfo_t *pconn);
  * 접속정보를 추가한다.
  * @param pconn 접속정보 구조체의 포인터
  * @param handle 스트림에 대한 핸들 
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_add_connection (gos_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
@@ -82,9 +87,9 @@ gos_find_connection_by_handle (gos_conninfo_t *pconn, uv_stream_t *handle);
  * @param pconn 접속정보 구조체의 포인터
  * @param handle 스트림에 대한 핸들 
  * @param gcgid GCG 식별자
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_set_gcgid (gos_conninfo_t *pconn, uv_stream_t *handle, int gcgid);
 
 /**
@@ -109,9 +114,9 @@ gos_get_writemsgbuf  (gos_conninfo_t *pconn, uv_stream_t *handle);
  * 접속정보 하나를 제거한다.
  * @param pconn 접속정보 구조체의 포인터
  * @param handle 스트림에 대한 핸들 
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_remove_connection (gos_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
@@ -125,18 +130,18 @@ gos_release_conninfo (gos_conninfo_t *pconn);
  * 버퍼에 있는 TTA P3 메세지프레임을 파싱한다.
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param pframe TTA P3 메세지프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_parseframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe);
 
 /**
  * TTA P3 메세지프레임을 버퍼에 기록한다. 
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param pframe TTA P3 메세지프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_writeframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe);
 
 

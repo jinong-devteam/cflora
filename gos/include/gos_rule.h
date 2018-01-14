@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_rule.h
+ * \brief GOS 룰관련 해더 파일. 기존 코드를 수정했음.
+ */
+
 #ifndef _GOS_RULE_H_
 #define _GOS_RULE_H_
 
@@ -74,18 +80,18 @@ typedef struct {
  * 룰 정보를 초기화 한다.
  * @param pruelset 룰 세트 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_init_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig);
 
 /**
  * 룰 정보를 디비로부터 로드한다.
  * @param pruelset 룰 세트 구조체의 포인터
  * @param pdb 디비 핸들러의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *pdb);
 
 /**
@@ -108,7 +114,7 @@ gos_reset_rulecondition (gos_ruleset_t *pruleset);
  * @param pruelset 룰 세트 구조체의 포인터
  * @param sensorid 센서 식별자
  * @param nvalue 센서의 측정치
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
 void
 gos_test_rules (gos_ruleset_t *pruleset, int sensorid, double nvalue);
@@ -117,9 +123,9 @@ gos_test_rules (gos_ruleset_t *pruleset, int sensorid, double nvalue);
  * 룰을 평가한다.
  * @param pruelset 룰 세트 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_evaluate_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig);
 
 #endif

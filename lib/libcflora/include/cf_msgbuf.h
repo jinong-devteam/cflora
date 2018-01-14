@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file cf_msgbuf.h
+ * \brief 메세지 버퍼관련 공통라이브러리 파일. 기존 코드를 살짝 수정했음.
+ */
 
 #ifndef _CFLORA_MESSAGE_BUFFER_H_
 #define _CFLORA_MESSAGE_BUFFER_H_
@@ -15,9 +20,9 @@ typedef struct {
 /**
  * 메세지 버퍼를 초기화 한다.
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 cf_init_msgbuf (cf_msgbuf_t *pmsgbuf);
 
 /**
@@ -25,9 +30,9 @@ cf_init_msgbuf (cf_msgbuf_t *pmsgbuf);
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param buf 추가할 문자열
  * @param len 추가할 문자열의 길이
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 cf_append_msgbuf (cf_msgbuf_t *pmsgbuf, char *buf, int len);
 
 /**
@@ -84,9 +89,9 @@ cf_release_msgbuf (cf_msgbuf_t *pmsgbuf);
  * 메세지 버퍼의 사이즈를 재설정한다. 재설정시 원래 들어있던 값들은 모두 사라진다.
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param size 원하는 길이
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 cf_resize_msgbuf (cf_msgbuf_t *pmsgbuf, int size);
 
 #endif

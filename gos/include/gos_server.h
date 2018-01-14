@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_server.h
+ * \brief GOS 서버관련 해더 파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GOS_SERVER_H_
 #define _GOS_SERVER_H_
@@ -44,9 +49,9 @@ gos_set_restart (gos_server_t *pserver, int restart);
  * 디비로 부터 서버를 재시작 할지 확인하고, 재시작이 필요하다면 이벤트 루프를 종료한다.
  * @param pserver 서버정보
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_check_restart (gos_server_t *pserver, gos_config_t *pconfig);
 
 /**
@@ -97,26 +102,26 @@ gos_get_ruleset ();
  * 메세지를 전송한다.
  * @param handle 스트림 핸들러
  * @param pframe 메세지 프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_send_message (uv_stream_t *handle, tp3_frame_t *pframe);
 
 /**
  * 메세지를 처리한다.
  * @param handle 스트림 핸들러
  * @param pframe 메세지 프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_process_message (uv_stream_t *handle, tp3_frame_t *pframe);
 
 /**
  * GOS 를 초기화 한다.
  * @param conffile 설정 파일의 경로
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_initialize (char *conffile);
 
 /**
@@ -129,18 +134,18 @@ gos_finalize ();
  * Timer 서버를 시작한다.
  * @param pgos 서버 정보 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_timer_start (gos_server_t *pgos, gos_config_t *pconfig);
 
 /**
  * TTA 서버를 시작한다.
  * @param pgos 서버 정보 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_ttaserver_start (gos_server_t *pgos, gos_config_t *pconfig);
 
 #endif

@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_connection.cpp
+ * \brief GOS 통신관련 소스 파일. 기존 코드를 수정했음.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,16 +28,20 @@ gos_release_conninfo (gos_conninfo_t *pconn) {
 	CF_FREE (pconn->pconn);
 }
 
-cf_ret_t
+ret_t
 gos_add_connection (gos_conninfo_t *pconn, uv_stream_t *handle) {
 	gos_conn_t *ptmp = NULL;
-	int value = 87380 ;
+	int value = 87380;
+
 	uv_recv_buffer_size((uv_handle_t *)handle, &value);	
 	uv_send_buffer_size((uv_handle_t *)handle, &value);
 
 	if (pconn->len >= pconn->size) {
 		ptmp = (gos_conn_t *) CF_REALLOC (pconn->pconn, sizeof (gos_conn_t) * (pconn->size + _GOS_STEP));
-		CF_ERR_RETURN (ptmp == NULL, "connection reallocation failed.");
+		if (ptmp == NULL) {
+            LOG(ERROR) << "connection reallocation failed.";
+            return ERR;
+        }
 		pconn->size += _GOS_STEP;
 		pconn->pconn = ptmp;
 	} 
@@ -47,7 +56,7 @@ gos_add_connection (gos_conninfo_t *pconn, uv_stream_t *handle) {
 
 	pconn->len += 1;
 
-	return CF_OK;
+	return OK;
 }
 
 gos_conn_t *
@@ -72,19 +81,22 @@ gos_find_connection_by_handle (gos_conninfo_t *pconn, uv_stream_t *handle) {
 	return NULL;
 }
 
-cf_ret_t
+ret_t
 gos_set_gcgid (gos_conninfo_t *pconninfo, uv_stream_t *handle, int gcgid) {
 	gos_conn_t *pconn = gos_find_connection_by_handle (pconninfo, handle);
-	CF_ERR_RETURN (pconn == NULL, "Finding connection failed.");
+	if (pconn == NULL) {
+        LOG(ERROR) << "Finding connection failed.";
+        return ERR;
+    }
 	pconn->gcgid = gcgid;
-	return CF_OK;
+	return OK;
 }
 
 cf_msgbuf_t *
 gos_get_readmsgbuf  (gos_conninfo_t *pconninfo, uv_stream_t *handle) {
 	gos_conn_t *pconn = gos_find_connection_by_handle (pconninfo, handle);
 	if (pconn == NULL) {
-		CF_ERR_LOG ("Finding connection failed.");
+		LOG(ERROR) <<"Finding connection failed.";
 		return NULL;
 	}
 	return &(pconn->readbuf);
@@ -94,7 +106,7 @@ cf_msgbuf_t *
 gos_get_writemsgbuf  (gos_conninfo_t *pconninfo, uv_stream_t *handle) {
 	gos_conn_t *pconn = gos_find_connection_by_handle (pconninfo, handle);
 	if (pconn == NULL) {
-		CF_ERR_LOG ("Finding connection failed.");
+		LOG(ERROR) <<"Finding connection failed.";
 		return NULL;
 	}
 	return &(pconn->writebuf);
@@ -124,7 +136,7 @@ gos_set_remove_connection (gos_conninfo_t *pconn, uv_stream_t *handle) {
 	}	
 }
 
-cf_ret_t
+ret_t
 gos_remove_connection (gos_conninfo_t *pconn, uv_stream_t *handle) {
 	int i;
 	
@@ -132,10 +144,10 @@ gos_remove_connection (gos_conninfo_t *pconn, uv_stream_t *handle) {
 		if ((pconn->pconn)[i].handle == handle) {
 			memcpy (pconn->pconn + i, pconn->pconn + pconn->len, sizeof(gos_conn_t));
 			pconn->len -= 1;
-			return CF_OK;
+			return OK;
 		}
 	}
-	return CF_ERR;
+	return ERR;
 }
 
 void
@@ -143,29 +155,36 @@ gos_releaseconninfo (gos_conninfo_t *pconn) {
 	CF_FREE (pconn->pconn);
 }
 
-cf_ret_t
+ret_t
 gos_parseframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe) {
 	int len;
 
 	len = tp3_readframe (pframe, (byte *)cf_getbuf_msgbuf (pmsgbuf), cf_getlength_msgbuf (pmsgbuf));
 	if (0 < len) {
-		CF_VERBOSE (CF_VERBOSE_HIGH, "read frame [bytes : %d].", len);
+		LOG(INFO) << "parsefream read frame bytes " << len;
 		cf_setused_msgbuf (pmsgbuf, len);
-		return CF_OK;
+		return OK;
 	}
-	return CF_ERR;
+	return ERR;
 }
 
-cf_ret_t
+ret_t
 gos_writeframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe) {
 	int size = tp3_getframesize (pframe);
 
-	CF_ERR_RETURN (cf_resize_msgbuf (pmsgbuf, size), "mesage buffer frame writing failed.");
+	if (cf_resize_msgbuf (pmsgbuf, size)) {
+        LOG(ERROR) << "mesage buffer frame writing failed.";
+        return ERR;
+    }
 
-	CF_EXP_RETURN (TP3_SC_NOERROR != tp3_writeframe (pframe, (byte *)cf_getbuf_msgbuf (pmsgbuf), cf_getsize_msgbuf (pmsgbuf)),
-			CF_ERR, "message buffer frame writing failed");
+	if (TP3_SC_NOERROR != tp3_writeframe 
+            (pframe, (byte *)cf_getbuf_msgbuf (pmsgbuf), cf_getsize_msgbuf (pmsgbuf))) {
+        LOG(ERROR) << "message buffer frame writing failed";
+        return ERR;
+    }
+
 	cf_setlength_msgbuf (pmsgbuf, size);
 
-	return CF_OK;
+	return OK;
 }
 

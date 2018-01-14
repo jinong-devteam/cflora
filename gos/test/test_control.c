@@ -19,12 +19,12 @@
 
 #define CONFIG	"../../conf/gos_server.ini"
 
-cf_ret_t
+ret_t
 test_readnsend () {
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 test_rule () {
 	/*
 	gos_ruleset_t *prset = gos_get_ruleset ();
@@ -47,7 +47,7 @@ test_rule () {
 	gos_reset_rulecondition (prset);
 	*/
 
-	return CF_OK;
+	return OK;
 }
 
 

@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file cf_config.c
+ * \brief 설정파일 관련 공통라이브러리 파일. 기존 코드를 수정했음.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +23,7 @@ cf_read_ini (char *conffile) {
 	char *pc, *sc;
 
 	if (fp == NULL) {
-		CF_ERR_LOG ("config file open failed");
+		cf_errormsg ("config file open failed");
 		return NULL;
 	}
 
@@ -44,7 +50,7 @@ cf_read_ini (char *conffile) {
 			strcpy (pini->section, sect);
 			strcpy (pini->name, pc);
 			strcpy (pini->value, sc);
-			CF_VERBOSE (CF_VERBOSE_MID, "configuration [%s:%s]=[%s]", sect, pc, sc);
+			cf_errormsg ("configuration [%s:%s]=[%s]", sect, pc, sc);
 			pini->next = (void *)pheader;
 			pheader = pini;
 		}
@@ -56,7 +62,6 @@ cf_read_ini (char *conffile) {
 
 char *
 cf_get_configitem (cf_ini_t *pini, const char *section, const char *name) {
-	char tmp[128];
 	while (pini != NULL) {
 		if (strcmp (pini->section, section) == 0
 			&& strcmp (pini->name, name) == 0) {
@@ -64,8 +69,7 @@ cf_get_configitem (cf_ini_t *pini, const char *section, const char *name) {
 		}
 		pini = (cf_ini_t *)(pini->next);
 	}
-	sprintf (tmp, "no configuration item - %s:%s", section, name);
-	CF_ERR_LOG (tmp);
+	cf_errormsg ("no configuration item - %s:%s", section, name);
 	return NULL;
 }
 
@@ -73,10 +77,20 @@ int
 cf_get_configitem_int (cf_ini_t *pini, const char *section, const char *name) {
 	char *item = cf_get_configitem (pini, section, name);
 	if (item == NULL) {
-		CF_ERR_LOG ("no configuration item to convert to integer value");
+		cf_errormsg ("no configuration item to convert to integer value");
 		return 0;
 	}
 	return atoi (item);
+}
+
+double
+cf_get_configitem_double (cf_ini_t *pini, const char *section, const char *name) {
+	char *item = cf_get_configitem (pini, section, name);
+	if (item == NULL) {
+		cf_errormsg ("no configuration item to convert to integer value");
+		return 0;
+	}
+	return atof (item);
 }
 
 void

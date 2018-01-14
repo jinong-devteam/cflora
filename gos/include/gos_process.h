@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_process.h
+ * \brief GOS 메세지처리 관련 해더 파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GOS_PROCESS_H_
 #define _GOS_PROCESS_H_

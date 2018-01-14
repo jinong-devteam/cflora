@@ -9,7 +9,7 @@
 
 #define TESTINI	"cflora_server.ini"
 
-cf_ret_t
+ret_t
 test_ini () {
 	char *item;
 	int n;
@@ -28,7 +28,7 @@ test_ini () {
 
 	cf_release_ini (pini);
 
-	return CF_OK;
+	return OK;
 }
 
 int

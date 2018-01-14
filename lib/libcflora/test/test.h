@@ -23,8 +23,8 @@
 /* No error Assertion Test */
 #define ASSERT_OK(expr,msg)											\
 	do {                                                     	\
-		cf_ret_t __stat;  \
-		if (CF_OK != (__stat = expr)) {                                          \
+		ret_t __stat;  \
+		if (OK != (__stat = expr)) {                                          \
 			fprintf(stderr,                                     \
 				"Assertion failed in %s on line %d: %s\n\t%s\n",   	\
 				__FILE__,                                     	\
@@ -52,7 +52,7 @@
 /* Test Run */
 #define TEST(expr)											\
 	do {                                                     	\
-		if (CF_OK == (expr)) {                                          \
+		if (OK == (expr)) {                                          \
 			fprintf(stderr,                                     \
 				"%s test pass in %s on line %d\n",    	\
 				#expr,                                       	\

@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file cf_db_mysql.c
+ * \brief mysql 디비 관련 공통라이브러리 파일. 기존 코드를 수정했음.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +16,6 @@
 int
 cf_db_timet( const char *datetime_string ) {
 	struct tm stm;
-	strptime(datetime_string, "%Y-%m-%d %H:%M:%S", &stm);
 	return (int)mktime(&stm);  // t is now your desired time_t
 }
 
@@ -25,17 +29,17 @@ cf_db_timestring( char *buffer, int buffer_max , int timet ) {
 int
 cf_db_busy (void *handle, int ntry) {
 	if (handle == NULL)
-		fprintf(stderr, "db busy [%d/3]\n", ntry);
+		cf_errormsg ("db busy [%d/3]\n", ntry);
 	else
-		fprintf(stderr, "db busy [%d/3] : %s\n", ntry, (char *)handle);
+		cf_errormsg ("db busy [%d/3] : %s\n", ntry, (char *)handle);
 	return 3 - ntry;
 }
 
-cf_ret_t
+ret_t
 cf_init_db (cf_db_t *pdb, char *dbstr) {
 // ( HOST;DATABASE;USER;PASSWD;PORT; ) 
 	char *conInfo ;
-	char *con_text[5] , idx = 0 ;
+	char idx = 0 ;
 	mysql_init(&pdb->db);
 	pdb->dbstr = strdup (dbstr);
 
@@ -62,7 +66,7 @@ cf_init_db (cf_db_t *pdb, char *dbstr) {
 		idx ++ ;
 		conInfo = strtok(NULL, ";");
 	}	
-	return CF_OK;
+	return OK;
 }
 
 void
@@ -71,25 +75,27 @@ cf_release_db (cf_db_t *pdb) {
 	CF_FREE (pdb->dbstr);
 }
 
-cf_ret_t
+ret_t
 cf_db_open (cf_db_t *pdb) {
 // ( HOST;DATABASE;USER;PASSWD;PORT; ) 
 
-	CF_ERR_RETURN (0 == mysql_real_connect ( &pdb->db, 
-			pdb->pHost !=NULL?pdb->pHost :"" , // HOST
-			pdb->pUser !=NULL?pdb->pUser :"" , // USER
-			pdb->pPassword !=NULL?pdb->pPassword :"" , // PASSWD
-			pdb->pDatabase !=NULL?pdb->pDatabase :"" , // DATABASE
-			atoi(pdb->pPort !=NULL?pdb->pPort :"0") , // PORT
-			NULL , 0
-			) , "DB open failed");
-	return CF_OK;
+	if (0 == mysql_real_connect ( &pdb->db, 
+                pdb->pHost !=NULL?pdb->pHost :"" , // HOST
+                pdb->pUser !=NULL?pdb->pUser :"" , // USER
+                pdb->pPassword !=NULL?pdb->pPassword :"" , // PASSWD
+                pdb->pDatabase !=NULL?pdb->pDatabase :"" , // DATABASE
+                atoi(pdb->pPort !=NULL?pdb->pPort :"0") , // PORT
+                NULL , 0)) {
+        cf_errormsg ("DB open failed");
+        return ERR;
+    };
+	return OK;
 }
 
-cf_ret_t
+ret_t
 cf_db_close (cf_db_t *pdb) {
 	mysql_close(&pdb->db) ;
-	return CF_OK;
+	return OK;
 }
 
 MYSQL_BIND	*g_pBind = NULL ;
@@ -108,15 +114,15 @@ mysql_prepare(
 	*ppStmt = mysql_stmt_init( &db->db  );
 	if (! *ppStmt)
 	{
-		cf_errorMsg("mysql_stmt_init(), out of memory");	
-		cf_errorMsg(" (%s :%d).\n", __FILE__, __LINE__);	
-		return CF_ERR;
+		cf_errormsg ("mysql_stmt_init(), out of memory");	
+		cf_errormsg (" (%s :%d).\n", __FILE__, __LINE__);	
+		return ERR;
 	}
 	if ( mysql_stmt_prepare(*ppStmt, zSql, nByte ) )
 	{
-		cf_errorMsg( " mysql_stmt_prepare(), failed  : %s (%s)" ,mysql_stmt_error(*ppStmt), zSql );
-		cf_errorMsg(" (%s :%d).\n", __FILE__, __LINE__);	
-		return CF_ERR;
+		cf_errormsg ( " mysql_stmt_prepare(), failed  : %s (%s)" ,mysql_stmt_error(*ppStmt), zSql );
+		cf_errormsg (" (%s :%d).\n", __FILE__, __LINE__);	
+		return ERR;
 	}
 	param_count= mysql_stmt_param_count(*ppStmt) ;
 	if ( param_count ) {
@@ -124,15 +130,15 @@ mysql_prepare(
 		memset(g_pBind, 0, sizeof(MYSQL_BIND)*param_count);
 	}
 
-	return CF_OK;
+	return OK;
 }
 
 int mysql_bind_int(cf_db_stmt* stmt, int idx, int value)
 {
 	int param_count= mysql_stmt_param_count(stmt) ;
-	if ( g_pBind == NULL ) return CF_OK;
+	if ( g_pBind == NULL ) return OK;
 	if ( idx >= param_count ) 
-		return CF_ERR; \
+		return ERR; \
 	if ( g_pBind[idx].buffer ) CF_FREE( g_pBind[idx].buffer ) ;
 	if ( g_pBind[idx].length ) CF_FREE( g_pBind[idx].length ) ;
 	g_pBind[idx].buffer = CF_MALLOC( sizeof(int) ) ;
@@ -140,15 +146,15 @@ int mysql_bind_int(cf_db_stmt* stmt, int idx, int value)
 	g_pBind[idx].buffer_type= MYSQL_TYPE_LONG;
 	g_pBind[idx].is_null= 0;
 	g_pBind[idx].length= 0;
-	return CF_OK;
+	return OK;
 }
 
 int mysql_bind_null(cf_db_stmt* stmt, int idx)
 {
 	int param_count= mysql_stmt_param_count(stmt) ;
-	if ( g_pBind == NULL ) return CF_OK;
+	if ( g_pBind == NULL ) return OK;
 	if ( idx >= param_count ) 
-		return CF_ERR; \
+		return ERR; \
 
 	if ( g_pBind[idx].buffer ) CF_FREE( g_pBind[idx].buffer ) ;
 	if ( g_pBind[idx].length ) CF_FREE( g_pBind[idx].length ) ;
@@ -156,14 +162,14 @@ int mysql_bind_null(cf_db_stmt* stmt, int idx)
 	g_pBind[idx].buffer= 0 ;
 	g_pBind[idx].is_null= 0;
 	g_pBind[idx].length= 0;
-	return CF_OK;
+	return OK;
 }
 int mysql_bind_text(cf_db_stmt* stmt,int idx ,const char* value,int length,void(* pFunc)(void*) )
 {
 	int param_count= mysql_stmt_param_count(stmt) ;
-	if ( g_pBind == NULL ) return CF_OK;
+	if ( g_pBind == NULL ) return OK;
 	if ( idx >= param_count ) 
-		return CF_ERR; \
+		return ERR; \
 
 	if ( g_pBind[idx].buffer ) CF_FREE( g_pBind[idx].buffer ) ;
 	if ( g_pBind[idx].length ) CF_FREE( g_pBind[idx].length ) ;
@@ -174,7 +180,7 @@ int mysql_bind_text(cf_db_stmt* stmt,int idx ,const char* value,int length,void(
 	((char*)g_pBind[idx].buffer)[length] = '\0' ;
 	g_pBind[idx].is_null= 0 ;
 	*(unsigned long*)g_pBind[idx].length= length;
-	return CF_OK;
+	return OK;
 }
 
   
@@ -197,9 +203,9 @@ mysql_get_table(
 	*pazResult = NULL ;
 	*pzErrmsg = NULL ;
 	if ( rc != 0 ) {  
-		cf_errorMsg("database query mysql_get_table failed : %s (%s).", mysql_error(db), zSql);	
-		cf_errorMsg(" (%s :%d).\n", __FILE__, __LINE__);	
-		return CF_ERR;
+		cf_errormsg ("database query mysql_get_table failed : %s (%s).", mysql_error(db), zSql);	
+		cf_errormsg (" (%s :%d).\n", __FILE__, __LINE__);	
+		return ERR;
 	} 
 	res = mysql_store_result(db); 
 	*pnColumn = mysql_num_fields(res);
@@ -245,18 +251,18 @@ mysql_get_table(
 	else {
 	}
 	*pzErrmsg = strdup(mysql_error(db)) ;
-	return CF_OK;
+	return OK;
 }
 
 int mysql_step(cf_db_stmt* stmt)
 {
 	if (mysql_stmt_bind_param(stmt, g_pBind)) {
-		cf_errorMsg(" mysql_stmt_bind_param() failed ");
-		cf_errorMsg(" %s\n", mysql_stmt_error(stmt));
-		return CF_ERR;
+		cf_errormsg (" mysql_stmt_bind_param() failed ");
+		cf_errormsg (" %s\n", mysql_stmt_error(stmt));
+		return ERR;
 	}
 	mysql_stmt_execute(stmt) ;
-	return CF_OK;
+	return OK;
 }
 
 //#define cf_db_exec(d,q,f,n,e) mysql_query(&(d)->db, q); *(e) = strdup(mysql_error(&(d)->db) );
@@ -283,89 +289,5 @@ void mysql_free_table(char **result)
 		//CF_MALLOC
 }
 
-void 
-cf_errorMsg(const char *errFmt, ...)
-{
-  va_list argptr;
-
-  fflush(stdout);
-
-  va_start(argptr, errFmt);
-  vfprintf(stderr, errFmt, argptr);
-  va_end(argptr);
-
-  fflush(stderr);  // redundant
-  }
-
- /*
- cf_ret_t include_test()
- {
-	  MYSQL *db ;          //An open database 
-	  char ***pazResult ;    // Results of the query 
-	  char **pzErrmsg ;      // Error msg written here 
-
-  cf_db_stmt *pStmt ;
-	cf_db_prepare_v2(db,"select",6,&pStmt,NULL) ;
-	cf_db_bind_int(pStmt,1,1) ;
-	cf_db_bind_null(pStmt,1) ;
-	cf_db_bind_text(pStmt,1,"aaaa",4,NULL) ;
-	cf_db_step(pStmt) ;
-	cf_db_reset(pStmt) ;
-	cf_db_finalize(pStmt) ;
-	cf_db_free_table(*pazResult) ;
-	cf_db_free(pzErrmsg) ;
-
-	cf_db_exec(db,"select",NULL,NULL,pzErrmsg) ;
-	char leng[50] ;
-	int val ;
-	cf_db_t *pdb ;
-	CF_EXECUTE_GET_TEXT(pdb,"select",leng) ;
-	CF_EXECUTE_GET_INT(pdb,"select",&val) ;
-	CF_EXECUTE(pdb,"select") ;
-	CF_ROLLBACK(pdb) ;
-	CF_END_TRANSACTION(pdb) ;
-	CF_BEGIN_TRANSACTION(pdb) ;
-}
-
-*/
-
-#if 0
-void main()
-{
-	cf_db_t db ;
-	char leng[50] ;
-	MYSQL con ;
-	cf_init_mysql_db( &db , "127.0.0.1;gos;root;0419;" ) ;
-	
-	cf_db_mysql_open( &db ) ;
-	CF_EXECUTE(&db , "insert into gos_farm (name, address, postcode, telephone, owner) values ('이지팜농원', '경기도 안양시 인덕원', '123-456', '031-880-4615', '박흔동')" ) ;
-
-	CF_EXECUTE_GET_TEXT( &db , "select * from gos_farm" , leng ) ;
-	printf("%s\n", leng ) ;
-	
-	cf_db_mysql_close( &db ) ;
-#if 0	
-    mysql_init(&con);
-    if ( mysql_real_connect (
-        &con,                 /* pointer to connection handler */
-        NULL,       /* host to connect to */
-        "root",       /* user name */
-        "0419",          /* password */
-        "gos",          /* database to use */
-        0,          /* port (use default) */
-        NULL,   /* socket (use default) */
-        0)                                 /* flags (none) */
-    ) {
-        printf("Connection success\n");
-    } else {
-        fprintf(stderr, "Failed to connect to databases: Error: %s\n",
-            mysql_error(&con));
-    }
-
-    mysql_close(&con);	
-#endif
-	
-}
 #endif
 
-#endif

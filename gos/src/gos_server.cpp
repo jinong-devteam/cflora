@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_server.cpp
+ * \brief GOS 서버관련 소스 파일. 기존 코드를 수정했음.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,8 +85,8 @@ gos_check_auto_control (gos_server_t *pserver, gos_config_t *pconfig) {
 	char **results;  
 
 	rc = cf_db_get_table (db, "select control from gos_configuration", &results, &rows, &columns, &errmsg);   
-	if (rc != CF_OK) {          
-		CF_ERR_LOG ("database query execution (check auto control) failed. %s", errmsg);
+	if (rc != OK) {          
+		LOG(ERROR) << "database query execution (check auto control) failed. " << errmsg;
 		cf_db_free (errmsg);      
 		return 0;
 	}
@@ -90,7 +96,7 @@ gos_check_auto_control (gos_server_t *pserver, gos_config_t *pconfig) {
 	return (control[0] == 'a') ? 1 : 0;
 }
 
-cf_ret_t
+ret_t
 gos_check_restart (gos_server_t *pserver, gos_config_t *pconfig) {
 	cf_db_t *db = &(pconfig->db);
 	int restart;
@@ -104,7 +110,7 @@ gos_check_restart (gos_server_t *pserver, gos_config_t *pconfig) {
 		uv_stop (uv_default_loop ());
 	}
 
-	return CF_OK;
+	return OK;
 }
 
 void
@@ -114,14 +120,17 @@ gos_close_timer (uv_handle_t *handle) {
 
 void 
 gos_on_close(uv_handle_t *peer) {
-	CF_VERBOSE (CF_VERBOSE_LOW, "GCG disconnected.");
+	LOG(INFO) << "GCG disconnected.";
 	CF_FREE (peer);
 }
 
 
 void 
 gos_after_write (uv_write_t* req, int status) {
-	CF_EXP_VRETURN (status != 0, "uv_write error");
+	if (status != 0) {
+        LOG(ERROR) << "uv_write error";
+        return;
+    }
 	CF_FREE (req);
 }
 
@@ -147,7 +156,7 @@ gos_shutdown_stream (uv_stream_t *handle) {
 void
 gos_after_read (uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf) {
 	tp3_frame_t frame;
-	CF_VERBOSE (CF_VERBOSE_HIGH, "read [%ld] characters from gcg.", (long)nread);
+	LOG(INFO) << "read [" << (long)nread << "] characters from gcg.";
 
 	if (nread < 0) {
 		gos_shutdown_stream (handle);
@@ -156,12 +165,13 @@ gos_after_read (uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf) {
 		cf_msgbuf_t *preadbuf = gos_get_readmsgbuf (&(gosdata.conninfo), handle);
 
 		cf_append_msgbuf (preadbuf, buf->base, nread);
-		while (CF_OK == gos_parseframe_msgbuf (preadbuf, &frame)) {
-			CF_VERBOSE (CF_VERBOSE_HIGH, "parse frame [%d].", frame.length);
-			if ( CF_ERR == gos_process_message (handle, &frame) ) {
+		while (OK == gos_parseframe_msgbuf (preadbuf, &frame)) {
+			LOG(INFO) << "parse frame : " << frame.length;
+			if ( ERR == gos_process_message (handle, &frame) ) {
 				tp3_releaseframe (&frame);
 				CF_FREE (buf->base);
-				CF_EXP_VRETURN ( TRUE , "gos message processing failed.");
+				LOG(ERROR) << "gos message processing failed.";
+                return ;
 			}
 			tp3_releaseframe (&frame);
 		}
@@ -169,11 +179,11 @@ gos_after_read (uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf) {
 	}
 }
 
-cf_ret_t
+ret_t
 gos_process_message (uv_stream_t *handle, tp3_frame_t *pframe) {
 	tp3_frame_t res ;
 	tp3_stat_t sc;
-	cf_ret_t rc;
+	ret_t rc;
 	gos_tp3arg_t arg;
 	
 	gos_set_tp3arg (&arg, handle);
@@ -182,44 +192,47 @@ gos_process_message (uv_stream_t *handle, tp3_frame_t *pframe) {
 	if (sc != TP3_SC_NOERROR) {
 		if ( res.data != NULL )
 			tp3_releaseframe (&res);
-		CF_ERR_RETURN (1, "gos message processing failed [%s].", tp3_geterrormsg (sc));
+		LOG(ERROR) << "gos message processing failed. " << tp3_geterrormsg (sc);
+        return ERR;
 	}
 	rc = gos_send_message (handle, &res);
-	CF_VERBOSE (CF_VERBOSE_HIGH, "send response frame [%d].", res.length);
+	LOG(INFO) << "send response frame [" << res.length << "].";
 	tp3_releaseframe (&res);
 
 	if (gos_get_remove_connection (gos_get_conninfo (), handle) == 1) {
-		CF_VERBOSE (CF_VERBOSE_HIGH, "A connection will be lost.");
+		LOG(INFO) << "A connection will be lost.";
 		gos_remove_connection (gos_get_conninfo (), handle);
 		gos_shutdown_stream (handle);
 	}
 	return rc;
 }
 
-cf_ret_t
+ret_t
 gos_send_message (uv_stream_t *handle, tp3_frame_t *pframe) {
 	uv_write_t *req = (uv_write_t *) CF_MALLOC(sizeof (uv_write_t));
 	uv_buf_t buf;
 	cf_msgbuf_t *pwritebuf = gos_get_writemsgbuf (&(gosdata.conninfo), handle);
 
-	if (CF_ERR == gos_writeframe_msgbuf (pwritebuf, pframe)) {
-		CF_ERR_RETURN (1, "gos message writing failed.");
+	if (ERR == gos_writeframe_msgbuf (pwritebuf, pframe)) {
+		LOG(ERROR) << "gos message writing failed.";
+        return ERR;
 	}
 
 	buf.base = cf_getbuf_msgbuf (pwritebuf);
 	buf.len = cf_getlength_msgbuf (pwritebuf);
 
-	CF_VERBOSE (CF_VERBOSE_HIGH, "write [%d] bytes.", buf.len);
+	LOG(INFO) << "write message. bytes : " << (int)(buf.len);
 
 	if (uv_write(req, handle, &buf, 1, gos_after_write)) {
-		CF_ERR_RETURN (1, "gos message sending failed.");
+		LOG(ERROR) << "gos message sending failed.";
+        return ERR;
 	}
-	return CF_OK;
+	return OK;
 }
 
 void 
 gos_buf_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
-	buf->base = CF_MALLOC(suggested_size);
+	buf->base = (char *)CF_MALLOC(suggested_size);
 	buf->len = suggested_size;
 }
 
@@ -227,25 +240,37 @@ gos_buf_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
 void 
 gos_on_connection(uv_stream_t *server, int status) {
 	uv_stream_t *stream;
-	int r;
 
-	CF_EXP_VRETURN (status, "Connection error\n");
+	if (status) {
+        LOG(ERROR) << "Connection error";
+        return ;
+    }
 
 	stream = (uv_stream_t *) CF_MALLOC (sizeof(uv_tcp_t));
-	CF_EXP_VRETURN (stream == NULL, "Connection error\n");
-	r = uv_tcp_init(uv_default_loop (), (uv_tcp_t*)stream);
-	CF_EXP_VRETURN (r, "Connection initialization error\n");
+	if (stream == NULL) {
+        LOG(ERROR) << "Connection error";
+        return ;
+    }
+
+	if (uv_tcp_init(uv_default_loop (), (uv_tcp_t*)stream)) {
+        LOG(ERROR) << "Connection initialization error";
+        return ;
+    }
 
 	/* associate server with stream */
 	stream->data = server;
 
-	r = uv_accept(server, stream);
-	CF_EXP_VRETURN (r, "Connection accept error\n");
+	if (uv_accept(server, stream)) {
+        LOG(ERROR) << "Connection accept error";
+        return ;
+    }
 
-	CF_VERBOSE (CF_VERBOSE_LOW, "GCG connected.");
+	LOG(INFO) << "GCG connected.";
 
-	r = uv_read_start(stream, gos_buf_alloc, gos_after_read);
-	CF_EXP_VRETURN (r, "Connection read error\n");
+	if (uv_read_start(stream, gos_buf_alloc, gos_after_read)) {
+	    LOG(ERROR) << "Connection read error";
+        return ;
+    }
 
 	gos_add_connection (gos_get_conninfo (), stream);
 }
@@ -255,45 +280,61 @@ gos_on_server_close(uv_handle_t* handle) {
 	;
 }
 
-cf_ret_t
+ret_t
 gos_timer_start (gos_server_t *pgos, gos_config_t *pconfig) {
-	int r;
-	r = uv_timer_init (uv_default_loop (), &(pgos->timer));
-	CF_EXP_RETURN (r, CF_ERR, "Timer creation error\n");
-	r = uv_timer_start (&(pgos->timer), gos_timer_cb, 0, pconfig->timer);
-	CF_EXP_RETURN (r, CF_ERR, "Timer start error\n");
+	if (uv_timer_init (uv_default_loop (), &(pgos->timer))) {
+        LOG(ERROR) << "Timer creation error";
+        return ERR;
+    }
+	if (uv_timer_start (&(pgos->timer), gos_timer_cb, 0, pconfig->timer)) {
+	    LOG(ERROR) << "Timer start error";
+        return ERR;
+    }
 
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 gos_ttaserver_start (gos_server_t *pgos, gos_config_t *pconfig) {
 	struct sockaddr_in addr;
-	int r;
 
-	r = uv_tcp_init(uv_default_loop (), &(pgos->ttaserver));
-	CF_EXP_RETURN (r, CF_ERR, "Socket creation error\n");
+	if (uv_tcp_init(uv_default_loop (), &(pgos->ttaserver))) {
+        LOG(ERROR) << "Socket creation error";
+        return ERR;
+    }
 
-	r = uv_ip4_addr("0.0.0.0", pconfig->port, &addr);
-	CF_EXP_RETURN (r, CF_ERR, "Socket address error\n");
+	if (uv_ip4_addr("0.0.0.0", pconfig->port, &addr)) {
+        LOG(ERROR) << "Socket address error";
+        return ERR;
+    }
 
-	r = uv_tcp_bind(&(pgos->ttaserver), (const struct sockaddr*) &addr, 0);
-	CF_EXP_RETURN (r, CF_ERR, "Socket binding error\n");
+	if (uv_tcp_bind(&(pgos->ttaserver), (const struct sockaddr*) &addr, 0)) {
+        LOG(ERROR) << "Socket binding error";
+        return ERR;
+    }
 
-	r = uv_listen((uv_stream_t *)&(pgos->ttaserver), SOMAXCONN, gos_on_connection);
-	CF_EXP_RETURN (r, CF_ERR, "Socket listen error\n");
+	if (uv_listen((uv_stream_t *)&(pgos->ttaserver), SOMAXCONN, gos_on_connection)) {
+        LOG(ERROR) << "Socket listen error";
+        return ERR;
+    }
 
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 gos_initialize (char *conffile) {
 	cf_db_t *db = &(gos_get_config ()->db);
 
-	CF_ERR_RETURN (gos_read_config (&(gosdata.config), conffile), "read config failed.");
+	if (gos_read_config (&(gosdata.config), conffile)) {
+        LOG(ERROR) << "read config failed.";
+        return ERR;
+    }
 
-	CF_VERBOSE (CF_VERBOSE_MID, "GOS read configuration [%s].", conffile);
-	CF_ERR_RETURN (cf_db_open (db), "database open failed.");
+	LOG(INFO) << "GOS read configuration " << conffile;
+	if (cf_db_open (db)) {
+        LOG(ERROR) << "database open failed.";
+        return ERR;
+    }
 
 	gos_init_server (&(gosdata.server));
 	gos_init_devinfo (&(gosdata.devinfo), &(gosdata.config));
@@ -301,7 +342,7 @@ gos_initialize (char *conffile) {
 	gos_init_rules (&(gosdata.ruleset), &(gosdata.config));
 	gos_init_control (&(gosdata.config));
 
-	CF_VERBOSE (CF_VERBOSE_MID, "GOS set up server data.");
+	LOG(INFO) << "GOS set up server data.";
 
 	tp3_initgos (gosdata.config.gosid, gosdata.config.gcgids, gosdata.config.numofgcg);
 
@@ -309,16 +350,16 @@ gos_initialize (char *conffile) {
 	tp3_registcbfunc (TP3_MT_ENVINFO, gos_envmsg_cb, NULL);
 	tp3_registcbfunc (TP3_MT_CONNAPPROVAL, gos_connmsg_cb, NULL);
 
-	CF_VERBOSE (CF_VERBOSE_MID, "GOS set up data for TTA P3 library.");
+	LOG(INFO) << "GOS set up data for TTA P3 library.";
 
 	cf_db_close (db);
 
-	return CF_OK;
+	return OK;
 }
 
 void on_timer_close_complete(uv_handle_t* handle)
 {
-	CF_VERBOSE (CF_VERBOSE_LOW, "on_timer_close_complete.");
+	LOG(INFO) << "on_timer_close_complete.";
     CF_FREE(handle);
 }
 

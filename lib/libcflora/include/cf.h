@@ -9,7 +9,6 @@ extern "C" {
 #include <cf_config.h>
 #include <cf_msgbuf.h>
 #include <cf_db_mysql.h>
-#include <cf_control.h>
 
 #ifdef __cplusplus
 }

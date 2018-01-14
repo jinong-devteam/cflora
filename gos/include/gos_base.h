@@ -1,6 +1,13 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_base.h
+ * \brief GOS 기본 해더 파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GOS_BASE_H_
 #define _GOS_BASE_H_
+
+#include <glog/logging.h>
 
 #include <cf.h>
 

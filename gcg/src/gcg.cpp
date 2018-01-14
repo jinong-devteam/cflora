@@ -1,16 +1,22 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gcg.cpp
+ * \brief GCG 메인 관련 코드. 기존 코드를 수정했음.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <ctype.h>
-#ifndef _MSC_VER
-	#include <unistd.h>
-#else
-	#include "wingetopt.h"
-#endif
+#include <unistd.h>
+#include <sys/file.h>
+#include <errno.h>
 
 #include <uv.h>
 #include <tp3.h>
-#include <tp12.h>
+#include <gnodeutil.h>
+#include <gnode.h>
+#include <gnodehelper.h>
 #include <cf.h>
 
 #include "gcg_base.h"
@@ -20,7 +26,6 @@
 
 #define GCG_WORKING_DIRECTORY	"/"
 
-#ifndef _MSC_VER
 void 
 gcg_daemonize ()
 {
@@ -55,46 +60,18 @@ gcg_daemonize ()
 	for (x = sysconf(_SC_OPEN_MAX); x > 0; x--) {
 	//	close (x);
 	}
+
+    int pidf = open("/var/run/gcgg.pid", O_CREAT | O_RDWR, 0666);
+    if (flock(pidf, LOCK_EX | LOCK_NB) == -1) {
+        fprintf (stderr, "Another instance is running.");
+        exit(EXIT_FAILURE);
+    } else {
+        char pids[10];
+        int n = sprintf (pids, "%d\n", getpid ());
+        write (pidf, pids, n);
+    }
+    close (pidf);
 }
-#else
-BOOL CtrlHandler( DWORD fdwCtrlType ) 
-{ 
-	switch( fdwCtrlType ) 
-	{ 
-		// Handle the CTRL-C signal. 
-		case CTRL_C_EVENT: 
-			printf( "Ctrl-C event\n\n" );
-			Beep( 750, 300 ); 
-			gcg_finalize ();
-			return( FALSE );
-
-		// CTRL-CLOSE: confirm that the user wants to exit. 
-		case CTRL_CLOSE_EVENT: 
-			Beep( 600, 200 ); 
-			printf( "Ctrl-Close event\n\n" );
-			return( TRUE ); 
-
-		// Pass other signals to the next handler. 
-		case CTRL_BREAK_EVENT: 
-			Beep( 900, 200 ); 
-			printf( "Ctrl-Break event\n\n" );
-			return FALSE; 
-
-		case CTRL_LOGOFF_EVENT: 
-			Beep( 1000, 200 ); 
-			printf( "Ctrl-Logoff event\n\n" );
-			return FALSE; 
-
-		case CTRL_SHUTDOWN_EVENT: 
-			Beep( 750, 500 ); 
-			printf( "Ctrl-Shutdown event\n\n" );
-			return FALSE; 
-
-		default: 
-			return FALSE; 
-	} 
-} 
-#endif
 
 void
 gcg_execute () {
@@ -107,24 +84,30 @@ gcg_execute () {
 }
 
 int
-main (int argc, char **argv)
-{
+main (int argc, char **argv) {
 	int dflag = 0;
 	char *conffile = NULL;
 	int c;
 	int gcgid = GCG_DEFAULT_GCGID;
 
+    FLAGS_log_dir = "/var/log/farmos";
+    FLAGS_max_log_size = 10;
+    FLAGS_logbufsecs = 0;
+    google::InitGoogleLogging (argv[0]);
+
 	opterr = 0;
-	while ((c = getopt (argc, argv, "c:di:v:")) != -1) {
+	while ((c = getopt (argc, argv, "c:di:v:s:")) != -1) {
 		switch (c) {
 			case 'd':
 				dflag = 1;
 				break;
-			case 'c':
+			case 's':
 				conffile = optarg;
 				break;
+			case 'c':
+				// not use
+				break;
 			case 'v':
-				cf_set_verbose ((cf_verbose_t)atoi(optarg));
 				break;
 			case 'i':
 				gcgid = atoi(optarg);
@@ -142,14 +125,10 @@ main (int argc, char **argv)
 		}
 	}
 
-#ifndef _MSC_VER
 	if (dflag)
 		gcg_daemonize ();
-#else
-		SetConsoleCtrlHandler( (PHANDLER_ROUTINE) CtrlHandler, TRUE ) ;
-#endif
 
-	CF_ERR_RETURN (gcg_initialize (conffile, gcgid), "gcg initialization failed.");
+	ERR_RETURN (gcg_initialize (conffile, gcgid), "gcg initialization failed.");
 	gcg_execute ();
 	gcg_finalize ();
 

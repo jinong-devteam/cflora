@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_rule.cpp
+ * \brief GOS 룰관련 소스 파일. 기존 코드를 수정했음.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,43 +24,43 @@ gos_get_interpolated (gos_rarg_t *parg, int span, int ndiff) {
 int
 gos_rop_gt (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue > gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 int
 gos_rop_lt (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue < gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 int
 gos_rop_eq (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue == gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 int
 gos_rop_gte (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue >= gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 int
 gos_rop_lte (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue <= gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 int
 gos_rop_neq (double nvalue, int ndiff, void *arg, int span) {
 	if (nvalue != gos_get_interpolated ((gos_rarg_t *)arg, span, ndiff))
-		return TRUE;
-	return FALSE;
+		return 1;
+	return 0;
 }
 
 static gos_rexp_func _funcs[CF_ROP_MAX] = {
@@ -63,19 +69,19 @@ static gos_rexp_func _funcs[CF_ROP_MAX] = {
 };
 
 
-cf_ret_t
+ret_t
 gos_init_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig) {
-	cf_ret_t rc;
+	ret_t rc;
 
 	rc = gos_load_rules (pruleset, &(pconfig->db));
-	if (rc != CF_OK) {
-		CF_ERR_LOG ("rule load failed");
+	if (rc != OK) {
+		LOG(ERROR) << "rule load failed";
 	}
 
 	return rc; 
 }
 
-cf_ret_t
+ret_t
 gos_load_rules_acts (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 	char query[_GOS_BUF_LEN];
 	char **result;
@@ -85,17 +91,17 @@ gos_load_rules_acts (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 	sprintf (query, "select istrue, actuator_id, argument, workingtime from gos_control_rule_action where id = %d order by istrue asc", ruleid);
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
-	if (rc != CF_OK) {
-		CF_ERR_LOG ("database query execution (get rule action) failed. %s", errmsg);
+	if (rc != OK) {
+		LOG(ERROR) << "database query execution (get rule action) failed. " << errmsg;
 		cf_db_free(errmsg);
-		return CF_ERR;
+		return ERR;
 	}
 
 	prule->pactions = (gos_ract_t *) CF_MALLOC (sizeof (gos_ract_t) * rows);
 	if (prule->pactions == NULL) {
-		CF_ERR_LOG ("memory allocation for rule action infomation failed.");
+		LOG(ERROR) << "memory allocation for rule action infomation failed.";
 		cf_db_free_table (result);
-		return CF_ERR;
+		return ERR;
 	}
 	prule->numofact = rows;
 	prule->actsidx = -1;
@@ -112,7 +118,7 @@ gos_load_rules_acts (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 		pact->wtime = atoi (result[idx + 3]);
 	}
 	cf_db_free_table (result);
-	return CF_OK;
+	return OK;
 }
 
 gos_rop_t
@@ -124,12 +130,12 @@ gos_convert_ruleop (char *opstr) {
 
 	for (i = 0; i < CF_ROP_MAX; i++) {
 		if (strcmp (opstrs[i], opstr) == 0)
-			return i;
+			return (gos_rop_t)i;
 	}
-	return 0;
+	return (gos_rop_t)0;
 }
 
-cf_ret_t
+ret_t
 gos_load_rules_exps (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 	char query[_GOS_BUF_LEN];
 	char **result;
@@ -142,34 +148,37 @@ gos_load_rules_exps (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 	CF_EXECUTE_GET_INT(db, query, &nspan);
 
 	prule->ptimes = (gos_rtimespan_t *) CF_MALLOC (sizeof (gos_rtimespan_t) * nspan);
-	CF_ERR_RETURN (prule->ptimes == NULL, "memory allocation for rule timespan failed.");
+	if (prule->ptimes == NULL) {
+        LOG(INFO) << "memory allocation for rule timespan failed.";
+        return ERR;
+    }
 	prule->numofts = nspan;
 
 	sprintf (query, "select ftime, ttime, operator, sensor_id, fvalue, tvalue from gos_control_rule_condition where id = %d order by ftime, ttime", ruleid);
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
-	if (rc != CF_OK) {
-		CF_ERR_LOG ("database query execution (get rule expression) failed. %s", errmsg);
+	if (rc != OK) {
+		LOG(ERROR) << "database query execution (get rule expression) failed. " << errmsg;
 		cf_db_free(errmsg);
-		return CF_ERR;
+		return ERR;
 	}
 
 	prule->psatisfied = (int *) CF_MALLOC (sizeof (int) * rows);
 	if (prule->psatisfied == NULL) {
-		CF_ERR_LOG ("memory allocation for rule expression flag failed.");
+		LOG(ERROR) << "memory allocation for rule expression flag failed.";
 		CF_FREE (prule->ptimes);
 		cf_db_free_table (result);
-		return CF_ERR;
+		return ERR;
 	}
 	memset (prule->psatisfied, 0, sizeof (int) * rows);
 
 	prule->pexps = (gos_rexp_t *) CF_MALLOC (sizeof (gos_rexp_t) * rows);
 	if (prule->pexps == NULL) {
-		CF_ERR_LOG ("memory allocation for rule expressions failed.");
+		LOG(ERROR) << "memory allocation for rule expressions failed.";
 		CF_FREE (prule->ptimes);
 		CF_FREE (prule->psatisfied);
 		cf_db_free_table (result);
-		return CF_ERR;
+		return ERR;
 	}
 	prule->numofexp = rows;
 
@@ -201,10 +210,10 @@ gos_load_rules_exps (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 
 	}
 	cf_db_free_table (result);
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *db) {
 	char *query = "select id, priority, period from gos_control_rule order by priority asc";
 	char **result;
@@ -212,17 +221,17 @@ gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *db) {
 	int rows, columns, rc, i;
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
-	if (rc != CF_OK) {
-		CF_ERR_LOG ("database query execution (get rules) failed. %s", errmsg);
+	if (rc != OK) {
+		LOG(ERROR) << "database query execution (get rules) failed. " << errmsg;
 		cf_db_free(errmsg);
-		return CF_ERR;
+		return ERR;
 	}
 
-	CF_VERBOSE (CF_VERBOSE_HIGH, "There are %d rules.", rows);
+	LOG(INFO) << "There are " << rows << " rules.";
 
 	pruleset->prules = (gos_rule_t *) CF_MALLOC (sizeof (gos_rule_t) * rows);
 	if (pruleset->prules == NULL) {
-		CF_ERR_LOG ("memory allocation for rule infomation failed.");
+		LOG(ERROR) << "memory allocation for rule infomation failed.";
 		cf_db_free_table (result);
 	}
 	pruleset->numofrules = rows;
@@ -237,14 +246,14 @@ gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *db) {
 		prule->lastexec = 0;
 
 		rc = gos_load_rules_acts (prule, id, db);
-		if (rc != CF_OK) {
+		if (rc != OK) {
 			prule->status = 0;
 			prule->pactions = NULL;
 			continue;
 		}
 
 		rc = gos_load_rules_exps (prule, id, db);
-		if (rc != CF_OK) {
+		if (rc != OK) {
 			prule->status = 0;
 			prule->ptimes = NULL;
 			prule->pexps = NULL;
@@ -252,11 +261,11 @@ gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *db) {
 		} else {
 			prule->status = 1;
 		}
-		CF_VERBOSE (CF_VERBOSE_HIGH, "A rule [%d] set up.", id);
+		LOG(INFO) << "A rule [" << id << "] set up.";
 	}
 	cf_db_free_table (result);
 
-	return CF_OK;
+	return OK;
 }
 
 void
@@ -314,7 +323,8 @@ gos_test_rule (gos_rule_t *prule, int now, int sensorid, double nvalue) {
 
 			(prule->psatisfied)[k] = _funcs[pexp->op]
 				(nvalue, now - ptime->from, (void *)&(pexp->arg), ptime->to - ptime->from);
-			CF_VERBOSE (CF_VERBOSE_HIGH, "rule[%d] sensor[%d] value[%f] : [%d].", prule->id, sensorid, nvalue, (prule->psatisfied)[k]);
+			LOG(INFO) << "rule[" << prule->id << "] sensor[" << sensorid << "] value[" 
+                << nvalue << "] : [" << (prule->psatisfied)[k];
 		}
 	}
 }
@@ -330,7 +340,7 @@ gos_test_rules (gos_ruleset_t *pruleset, int sensorid, double nvalue) {
 	}
 }
 
-cf_ret_t
+ret_t
 gos_execute_action (gos_ract_t *pact, int num, int ruleid, cf_db_t *db) {
 	int i;
 	char query[_GOS_BUF_LEN];
@@ -347,26 +357,27 @@ gos_execute_action (gos_ract_t *pact, int num, int ruleid, cf_db_t *db) {
 				date_now, pact[i].actuatorid, pact[i].arg, ruleid, pact[i].wtime);
 
 		rc = cf_db_exec(db, query, NULL, 0, &errmsg);
-		if (rc != CF_OK) {
-			CF_ERR_LOG ("database error : %s", errmsg);
+		if (rc != OK) {
+			LOG(ERROR) << "database error : " << errmsg;
 			cf_db_free (errmsg);
 			CF_ROLLBACK (db);
-			return CF_ERR;
+			return ERR;
 		}
 
-		CF_VERBOSE (CF_VERBOSE_MID, "auto-control actuator[%d] arg[%d] time[%d].", pact[i].actuatorid, pact[i].arg, pact[i].wtime);
+		LOG(INFO) << "Auto-control actuator[" << pact[i].actuatorid << "] arg[" 
+            << pact[i].arg << "] time[" << pact[i].wtime << "].";
 	}
 	CF_END_TRANSACTION (db);
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 gos_evaluate_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig) {
 	int i, j, now, k, m, stop = 0;
 	gos_rule_t *prule;
 	gos_rtimespan_t *ptime;
 	cf_db_t *db = &(pconfig->db);
-	cf_ret_t ret;
+	ret_t ret;
 
 	now = gos_get_secofday ();
 
@@ -385,16 +396,16 @@ gos_evaluate_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig) {
 				if (m == ptime->exp_end - ptime->exp_start) {
 					// true
 					ret = gos_execute_action (prule->pactions + prule->actsidx, prule->numofact - prule->actsidx, prule->id, db);
-					CF_VERBOSE (CF_VERBOSE_HIGH, "rule[%d] was matched - stop applying other rules.", prule->id);
+					LOG(INFO) << "rule[" << prule->id << "] was matched - stop applying other rules.";
 					stop = 1;
 				} else {
 					// false
 					ret = gos_execute_action (prule->pactions, prule->actsidx, prule->id, db);
-					CF_VERBOSE (CF_VERBOSE_HIGH, "rule[%d] was not matched.", prule->id);
+					LOG(INFO) << "rule[" << prule->id << "] was not matched.";
 				}
 
-				if (CF_OK != ret) {
-					CF_ERR_LOG ("to apply a rule [%d] was failed.", prule->id);
+				if (OK != ret) {
+					LOG(ERROR) << "to apply a rule [" << prule->id << "] was failed.";
 				} else {
 					prule->lastexec = gos_get_secofday ();
 				}
@@ -404,6 +415,6 @@ gos_evaluate_rules (gos_ruleset_t *pruleset, gos_config_t *pconfig) {
 		}
 	}
 
-	return CF_OK;
+	return OK;
 }
 

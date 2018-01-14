@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gos_device.h
+ * \brief GOS 장비관련 해더 파일. 기존 코드를 수정했음.
+ */
+
 #ifndef _GOS_DEVICE_H_
 #define _GOS_DEVICE_H_
 
@@ -24,11 +30,12 @@ typedef enum {
 	GOS_DEV_CCTV = 6,
 	GOS_DEV_VSENSOR = 7,
 	GOS_DEV_ASENSOR = 8,
-	GOS_DEV_NACTUATOR = 9,
-	GOS_DEV_UNKNOWN = 10 
+	GOS_DEV_IACTUATOR = 9,
+	GOS_DEV_ISENSOR = 10,
+	GOS_DEV_UNKNOWN = 11 
 } gos_devtype_t;
 
-#define _GOS_DEVTYPE_MAX	10
+#define _GOS_DEVTYPE_MAX	12
 
 /** 센서 데이터 변환 방식 */
 typedef enum {
@@ -69,6 +76,13 @@ typedef enum {
 
 #define _GOS_RESENT_IGNORE_COUNT	8
 
+#define _GOS_STR_ACTUATOR_OPEN_MAXWORKTIME  "opentime"
+#define _GOS_STR_ACTUATOR_CLOSE_MAXWORKTIME "closetime"
+#define _GOS_STR_SENSOR_MINVALUE            "min"
+#define _GOS_STR_SENSOR_MAXVALUE            "max"
+#define _GOS_STR_SENSOR_MAXDIFFERENTIAL     "diff"
+
+
 typedef enum {
 	GOS_CMD_NONE = 0,				    ///> 명령이 없는 상태 (디비에는 있을 수 있음)
 	GOS_CMD_IGNORED_WRONGCOMMAND = 1,	///> 명령이 잘못된 명령이기 때문에 무시된 상태
@@ -89,6 +103,7 @@ typedef struct {
 	int id;				///> 디비 테이블의 제어명령 ID
     int exectm;			///> 제어명령 실행시각 (입력시각)
     int senttm;			///> 제어명령 전송시각 
+    int fintm;          ///> 제어명령 종료시각
     int deviceid;		///> 제어기 아이디
 
     int arg;			///> 제어인자
@@ -111,10 +126,24 @@ typedef struct {
 	gos_asen_t type[_GOS_MAX_ASENSOR];	///< asensor type
 
 	int totaltime;						///< 구동기 전체 작동시간
-	int postime;						///< 구동기 작동시간 - 방향을 +/-로 감안하여 계산한 시간
+	int temptime;					    ///< 구동기 임시 작동시간
+
+    // 모터형인 경우
+	double position;					///< 모터 현재 열림비율
+	int openmaxtime;					///< 열림 최대 작동시간
+	int closemaxtime;					///< 닫힘 최대 작동시간
+
 	gos_cmd_t waitingcmd;				///< 대기중인 제어명령
 	gos_cmd_t currentcmd;				///< 실행중인 제어명령
 } gos_driver_t;
+
+/** 센서데이터 범위 제어를 위한 자료구조 */
+typedef struct {
+    int use;                            ///< 사용 여부
+    double minvalue;                    ///< 센서 최소값
+    double maxvalue;                    ///< 센서 최대값
+    double maxdiff;                     ///< 센서 최대 변화율
+} gos_sensor_range_t;
 
 /** 단일 디바이스 정보구조체 */
 typedef struct {
@@ -126,20 +155,18 @@ typedef struct {
 
 	double nvalue;			///< 가장 최신의 값 (변환)
 	int rawvalue;			///< 가장 최신의 값 (로우)
-	int isupdated;			///< 디바이스 값 변경 여부
+	time_t lastupdated;		///< 마지막 신규 정보입력시각 - 매번 업데이트
+	time_t lastchanged;		///< 마지막 변경시각 - 변경시 업데이트
 
 	// for TTA
 	int gcgid;				///< TTA 를 위한 GCG ID
 	int nodeid;				///< TTA 를 위한 NODE ID
 	int deviceid;			///< TTA 를 위한 Sensor ID or Actuator ID
 
-	// for field control => by chj 2015.10.20 제어 위치 정보 필요(1구역,2구역, 양액기 등등 )
-	int field_id ;
-	char type_name[21] ;
-
 	// for sensor & vsensor
 	gos_cvt_t cvt;			///< 센서인경우 데이터 변환방식
 	void *cvtarg;			///< 데이터 변환 인자 gos_cvt_linear_arg_t, gos_cvt_vsensor_arg_t
+    gos_sensor_range_t  range;  ///< 센서데이터 범위제어
 
 	// for actuator
 	gos_driver_t driver;	///< 액츄에이터인 경우 컨트롤 드라이버
@@ -169,9 +196,9 @@ typedef struct {
 } gos_cvt_linear_arg_t;
 
 /** 가상 센서의 상태를 계산하기 위한 함수 포인터 - SUSPEND 상태는 고려할 필요 없음 */
-typedef cf_ret_t (*_gos_get_vsensor_stat_func) (gos_dev_t *pself, gos_devinfo_t *pdevinfo, void *config, gos_devstat_t *stat);
+typedef ret_t (*_gos_get_vsensor_stat_func) (gos_dev_t *pself, gos_devinfo_t *pdevinfo, void *config, gos_devstat_t *stat);
 /** 가상 센서의 값을 계산하기 위한 함수 포인터 */
-typedef cf_ret_t (*_gos_get_vsensor_value_func) (gos_devinfo_t *pdevinfo, void *config, double *nvalue);
+typedef ret_t (*_gos_get_vsensor_value_func) (gos_devinfo_t *pdevinfo, void *config, double *nvalue);
 /** 가상 센서의 설정을 해제하기 위한 함수 포인터 */
 typedef void (*_gos_release_vsensor_config_func) (void *config);
 
@@ -188,9 +215,9 @@ typedef struct {
  * 디바이스 정보를 초기화 한다.
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_init_devinfo (gos_devinfo_t *pdevinfo, gos_config_t *pconfig);
 
 /**
@@ -210,7 +237,7 @@ int
 gos_is_newdevice (gos_devinfo_t *pdevinfo, gos_dev_t *pdev);
 
 /*
-cf_ret_t
+ret_t
 gos_add_devices (gos_devinfo_t *pdevinfo, gos_config_t *pconfig, int size, gos_dev_t *pdev);
 */
 
@@ -228,9 +255,9 @@ gos_add_device (gos_devinfo_t *pdevinfo, gos_dev_t *pdev);
  * 2015.06.24 : 설정파일에 기준하기 때문에 사용할 일이 없을 것으로 예상됨
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_sync_devices (gos_devinfo_t *pdevinfo, gos_config_t *pconfig);
 
 /**
@@ -268,39 +295,57 @@ gos_dev_t *
 gos_get_device (gos_devinfo_t *pdevinfo, gos_devtype_t devtype, int gcgid, int nodeid, int deviceid);
 
 /**
+ * 디바이스(isensor, iactuator) 최신 환경정보를 디비로 부터 읽는다.
+ * @param pdevinfo 디바이스 정보 구조체의 포인터
+ * @param pconfig 설정 구조체의 포인터
+ * @return 에러라면 ERR, 정상완료라면 OK
+ */
+ret_t
+gos_read_devinfo (gos_devinfo_t *pdevinfo, gos_config_t *pconfig);
+
+/**
+ * 디바이스(센서) 최신 환경정보를 디비에 업데이트한다.
+ * @param pdevinfo 디바이스 정보 구조체의 포인터
+ * @param pconfig 설정 구조체의 포인터
+ * @return 에러라면 ERR, 정상완료라면 OK
+ */
+ret_t
+gos_update_devinfo (gos_devinfo_t *pdevinfo, gos_config_t *pconfig);
+
+/**
  * 디바이스 상태정보와 환경정보를 디비에 기록한다.
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param pconfig 설정 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_write_devinfo (gos_devinfo_t *pdevinfo, gos_config_t *pconfig);
 
 /**
  * 구동기의 구동 상황(환경정보)를 디비에 업데이트한다.
  * @param pdev 디바이스 구조체의 포인터
  * @param db 데이터베이스 커넥션 정보
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_update_actuator_status (gos_dev_t *pdev, cf_db_t *db);
 
 /**
  * 디바이스 환경정보를 디비에 기록한다.
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param db 데이터베이스 커넥션 정보
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_write_env (gos_devinfo_t *pdevinfo, cf_db_t *db);
 
 /**
  * 디바이스 상태정보를 디비에 기록한다.
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param db 데이터베이스 커넥션 정보
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_write_stat (gos_devinfo_t *pdevinfo, cf_db_t *db);
 
 
@@ -320,18 +365,19 @@ gos_set_device (gos_dev_t *pdev, gos_devtype_t type, int gcgid, int nodeid, int 
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param nvalue 환경정보값
  * @param rawvalue 환경정보값 (RAW)
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @param updatetime 환경정보업데이트시간. 디폴트로 0이면 현재시간.
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
-gos_update_env (gos_dev_t *pdev, double nvalue, int rawvalue);
+ret_t
+gos_update_env (gos_dev_t *pdev, double nvalue, int rawvalue, time_t updatetime);
 
 /**
  * 디바이스 정보에 상태정보를 업데이트한다. 디비에 기록되지는 않는다.
  * @param pdevinfo 디바이스 정보 구조체의 포인터
  * @param status 상태정보값
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_update_stat (gos_dev_t *pdev, int status);
 
 /**
@@ -339,33 +385,37 @@ gos_update_stat (gos_dev_t *pdev, int status);
  * @param pdev 디바이스 구조체의 포인터
  * @param raw 센서의 출력
  * @param nvalue 변환된 실제값의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_convert_env (gos_dev_t *pdev, int raw, double *nvalue);
 
 /**
  * 센서의 출력을 변환하기위한 정보를 디비로부터 로드한다.
  * @param pdev 디바이스 구조체의 포인터
  * @param db 데이터베이스 커넥션 정보
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_load_convertinfo (gos_dev_t *pdev, cf_db_t *db);
 
 /**
  * 구동기 제어를 위한 센서정보를 디비로부터 로드한다.
  * @param pdev 디바이스 구조체의 포인터
  * @param db 데이터베이스 커넥션 정보
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_load_driver (gos_dev_t *pdev, cf_db_t *db);
 
-/*
-void
-gos_release_convertinfo (gos_cvt_linear_arg_t *parg);
-*/
+/**
+ * 장비 속성을 읽어온다.
+ * @param pdev 디바이스 구조체의 포인터
+ * @param db 데이터베이스 커넥션 정보
+ * @return 에러라면 ERR, 정상완료라면 OK
+ */
+ret_t
+gos_load_properties (gos_dev_t *pdev, cf_db_t *db);
 
 /**
  * 구동기 제어를 위한 raw level 인자를 세팅한다.
@@ -390,17 +440,58 @@ gos_parse_actuator_argument (int rawvalue, int *arg, int *worktime);
  * @param pdevinfo 장치정보 구조체의 포인터
  * @param pconfig 설정 정보 포인터
  * @param pconninfo 접속정보 구조체의 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_control (gos_devinfo_t *pdevinfo, gos_config_t *pconfig, gos_conninfo_t *pconninfo);
 
 /**
  * 구동기 초기 제어명령을 처리한다. 
  * @param pconfig 설정 정보 포인터
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gos_init_control (gos_config_t *pconfig);
 
+/**
+ * 구동기 작동시간을 초기화 한다.
+ * @param pdev 디바이스에 대한 포인터
+ */
+void
+gos_reset_driver_time (gos_dev_t *pdev);
+
+/**
+ * 구동기 작동시간을 세팅한다.
+ * @param pdev 디바이스에 대한 포인터
+ * @param pcmd 구동기를 작동시킨 명령
+ * @return 에러라면 ERR, 정상완료라면 OK. 에러인경우 명령이 종료되지 않은 경우임.
+ */
+ret_t
+gos_set_driver_time (gos_dev_t *pdev, gos_cmd_t *pcmd);
+
+/**
+ * 방향이 감안된 구동기 작동위치(%)를 리턴한다. 0이 닫힘. 100이 열림.
+ * @param pdev 디바이스에 대한 포인터
+ * @return 0~100 사이의 %값을 리턴
+ */
+double
+gos_get_driver_position (gos_dev_t *pdev);
+
+/**
+ * 구동기의 남은 작동시간을 리턴한다.
+ * @param pdev 디바이스에 대한 포인터
+ * @return 0~4095 사이의 값을 리턴
+ */
+double
+gos_get_remaining_time (gos_dev_t *pdev);
+
+/**
+ * 시스템 시작이후 구동기 작동시간(초)를 리턴한다.
+ * @param pdev 디바이스에 대한 포인터
+ * @return 시스템 시작이후 구동기 작동시간
+ */
+int
+gos_get_driver_totaltime (gos_dev_t *pdev);
+
 #endif
+

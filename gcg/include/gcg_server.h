@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gcg_server.h
+ * \brief GCG 서버 운영관련 해더파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GCG_SERVER_H_
 #define _GCG_SERVER_H_
@@ -29,32 +34,35 @@ gcg_get_server ();
 gcg_conninfo_t *
 gcg_get_conninfo ();
 
+GNODEGCGHelper *
+gcg_get_gnodegcghelper ();
 
-cf_ret_t
+
+ret_t
 gcg_send_tta3frame (uv_stream_t *handle, tp3_frame_t *pframe);
 
-cf_ret_t
+ret_t
 gcg_process_tta3frame (uv_stream_t *handle, tp3_frame_t *pframe);
 
-cf_ret_t
-gcg_process_tta12packet (gcg_conninfo_t *pconn, uv_stream_t *handle, TTA12PacketParsing *parser);
+ret_t
+gcg_process_tta12packet (gcg_conninfo_t *pconn, uv_stream_t *handle, GNODEGCGHelper *helper);
 
-cf_ret_t
-gcg_send_tta12packet (uv_stream_t *handle, TTA12Packet *packet);
+ret_t
+gcg_send_tta12packet (byte *buf, uint len, int nodeid);
 
-cf_ret_t
+ret_t
 gcg_initialize (char *conffile, int gcgid);
 
 void
 gcg_finalize ();
 
-cf_ret_t
+ret_t
 gcg_timer_start (gcg_server_t *pgcg, gcg_config_t *pconfig);
 
-cf_ret_t
+ret_t
 gcg_ttaserver_start (gcg_server_t *pgcg, gcg_config_t *pconfig);
 
-cf_ret_t
+ret_t
 gcg_ttaclient_connect (gcg_server_t *pgcg, gcg_config_t *pconfig);
 
 #endif

@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file gcg_connection.h
+ * \brief GCG 통신 관련 해더파일. 기존 코드를 수정했음.
+ */
 
 #ifndef _GCG_CONNECTION_H_
 #define _GCG_CONNECTION_H_
@@ -8,7 +13,8 @@
 typedef struct {
 	int nodeid[GCG_MAXNODE_IN_HANDLE];	///< Node ID
 	uv_stream_t *handle;				///< Node 스트림 핸들
-	TTA12PacketParsing parser;			///< Node 에서 받은 메세지 처리용
+	cf_msgbuf_t readbuf; 		///< NODE에서 받은 메세지의 버퍼
+	cf_msgbuf_t writebuf; 		///< NODE로 보낼 메세지의 버퍼
 } gcg_nodeconn_t;
 	
 typedef struct {
@@ -42,7 +48,7 @@ gcg_release_conninfo (gcg_conninfo_t *pconn);
  * @param handle 스트림에 대한 핸들 
  * @return 에러라면 GCG_ERR, 정상완료라면 GCG_OK
  */
-cf_ret_t
+ret_t
 gcg_set_gos_connection (gcg_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
@@ -51,7 +57,7 @@ gcg_set_gos_connection (gcg_conninfo_t *pconn, uv_stream_t *handle);
  * @param handle 스트림에 대한 핸들 
  * @return 에러라면 GCG_ERR, 정상완료라면 GCG_OK
  */
-cf_ret_t
+ret_t
 gcg_set_node_connection (gcg_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
@@ -61,7 +67,7 @@ gcg_set_node_connection (gcg_conninfo_t *pconn, uv_stream_t *handle);
  * @param nodeid 노드 ID
  * @return 에러라면 GCG_ERR, 정상완료라면 GCG_OK
  */
-cf_ret_t
+ret_t
 gcg_set_node_connection_info (gcg_conninfo_t *pconn, uv_stream_t *handle, int nodeid);
 
 /**
@@ -105,7 +111,16 @@ gcg_get_nodehandle_by_index (gcg_conninfo_t *pconn, int index);
  * @return 읽기용 메세지 버퍼의 포인터
  */
 cf_msgbuf_t *
-gcg_get_readmsgbuf  (gcg_conninfo_t *pconn);
+gcg_get_readmsgbuf (gcg_conninfo_t *pconn);
+
+/**
+ * NODE 읽기용 메세지 버퍼를 찾는다.
+ * @param pconn 접속정보 구조체의 포인터
+ * @param handle 노드 스트림 핸들
+ * @return 읽기용 메세지 버퍼의 포인터
+ */
+cf_msgbuf_t *
+gcg_get_node_readmsgbuf (gcg_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
  * gos 쓰기용 메세지 버퍼를 찾는다.
@@ -113,16 +128,17 @@ gcg_get_readmsgbuf  (gcg_conninfo_t *pconn);
  * @return 쓰기용 메세지 버퍼의 포인터
  */
 cf_msgbuf_t *
-gcg_get_writemsgbuf  (gcg_conninfo_t *pconn);
+gcg_get_writemsgbuf (gcg_conninfo_t *pconn);
 
 /**
- * node 메세지 읽기용 TTA12PacketParsing을 찾는다.
+ * NODE 쓰기용 메세지 버퍼를 찾는다.
  * @param pconn 접속정보 구조체의 포인터
- * @param handle 스트림에 대한 핸들 
- * @return TTA12PacketParsing 포인터
+ * @param handle 노드 스트림 핸들
+ * @return 쓰기용 메세지 버퍼의 포인터
  */
-TTA12PacketParsing *
-gcg_get_tta12parser (gcg_conninfo_t *pconn, uv_stream_t *handle);
+cf_msgbuf_t *
+gcg_get_node_writemsgbuf (gcg_conninfo_t *pconn, uv_stream_t *handle);
+
 
 /**
  * 접속정보를 제거한다.
@@ -130,7 +146,7 @@ gcg_get_tta12parser (gcg_conninfo_t *pconn, uv_stream_t *handle);
  * @param handle 스트림에 대한 핸들 
  * @return 에러라면 GCG_ERR, 정상완료라면 GCG_OK
  */
-cf_ret_t
+ret_t
 gcg_remove_connection (gcg_conninfo_t *pconn, uv_stream_t *handle);
 
 /**
@@ -145,18 +161,18 @@ gcg_is_connected (gcg_conninfo_t *pconn);
  * 버퍼에 있는 TTA P3 메세지프레임을 파싱한다.
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param pframe TTA P3 메세지프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gcg_parseframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe);
 
 /**
  * TTA P3 메세지프레임을 버퍼에 기록한다. 
  * @param pmsgbuf 메세지버퍼 구조체의 포인터
  * @param pframe TTA P3 메세지프레임
- * @return 에러라면 CF_ERR, 정상완료라면 CF_OK
+ * @return 에러라면 ERR, 정상완료라면 OK
  */
-cf_ret_t
+ret_t
 gcg_writeframe_msgbuf (cf_msgbuf_t *pmsgbuf, tp3_frame_t *pframe);
 
 

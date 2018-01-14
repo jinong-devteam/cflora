@@ -1,3 +1,8 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file cf_base.c
+ * \brief 메세지버퍼 관련 공통라이브러리 파일. 기존 코드를 수정했음.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,19 +16,22 @@
 #define _CF_SPARESIZE(pb) ((pb)->bufsize - (pb)->idx - (pb)->len)
 #define _CF_REALSPARESIZE(pb) ((pb)->bufsize - (pb)->len)
 
-cf_ret_t
+ret_t
 cf_init_msgbuf (cf_msgbuf_t *pmsgbuf) {
 	pmsgbuf->buf = CF_MALLOC (sizeof(char) * _CF_MSGBUF_STEP);
-	CF_ERR_RETURN (pmsgbuf->buf == NULL, "mesage buffer initialization failed.");
+	if (pmsgbuf->buf == NULL) {
+        cf_errormsg ("mesage buffer initialization failed.");
+        return ERR;
+    }
 
 	pmsgbuf->bufsize = _CF_MSGBUF_STEP;
 	pmsgbuf->len = 0;
 	pmsgbuf->idx = 0;
 
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 cf_append_msgbuf (cf_msgbuf_t *pmsgbuf, char *buf, int len){ 
 	int tmpsize;
 	void *tmpbuf;
@@ -32,7 +40,10 @@ cf_append_msgbuf (cf_msgbuf_t *pmsgbuf, char *buf, int len){
 		if (_CF_REALSPARESIZE (pmsgbuf) < len) {
 			tmpsize = pmsgbuf->bufsize + (len > _CF_MSGBUF_STEP ? len : _CF_MSGBUF_STEP);
 			tmpbuf = CF_REALLOC (pmsgbuf->buf, sizeof (char) * tmpsize);
-			CF_ERR_RETURN (tmpbuf == NULL, "message buffer reallocation failed.");
+			if (tmpbuf == NULL){
+                cf_errormsg ("message buffer reallocation failed.");
+                return ERR;
+            }
 			pmsgbuf->buf = tmpbuf;
 			pmsgbuf->bufsize = tmpsize;
 		} 
@@ -42,21 +53,24 @@ cf_append_msgbuf (cf_msgbuf_t *pmsgbuf, char *buf, int len){
 	memcpy (pmsgbuf->buf + pmsgbuf->idx + pmsgbuf->len, buf, len);
 	pmsgbuf->len += len;
 
-	return CF_OK;
+	return OK;
 }
 
-cf_ret_t
+ret_t
 cf_resize_msgbuf (cf_msgbuf_t *pmsgbuf, int size) { 
 	if (pmsgbuf->bufsize < size) {
 		CF_FREE (pmsgbuf->buf);
 		pmsgbuf->buf = CF_MALLOC (sizeof(char) * size);
-		CF_ERR_RETURN (pmsgbuf->buf == NULL, "mesage buffer expanding failed.");
+		if (pmsgbuf->buf == NULL) {
+            cf_errormsg ("mesage buffer expanding failed.");
+            return ERR;
+        }
 
 		pmsgbuf->bufsize = size;
 		pmsgbuf->len = 0;
 		pmsgbuf->idx = 0;
 	}
-	return CF_OK;
+	return OK;
 }
 
 void

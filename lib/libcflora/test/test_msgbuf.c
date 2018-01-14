@@ -7,7 +7,7 @@
 
 #define BUFF "abcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyzabcdefghijklmnopgrstuwxyz"
 
-cf_ret_t
+ret_t
 test_msgbuf () {
 	cf_msgbuf_t msgbuf;
 	int len, size;
@@ -40,7 +40,7 @@ test_msgbuf () {
 
 	cf_release_msgbuf (&msgbuf);
 
-	return CF_OK;
+	return OK;
 }
 
 int

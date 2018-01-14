@@ -1,6 +1,11 @@
+/**
+ * Copyright © 2017-2018 JiNong Inc. All Rights Reserved.
+ * \file cf_config.h
+ * \brief 설정파일관련 공통라이브러리 파일. iniparser를 사용함. 기존 코드를 살짝 수정했음.
+ */
+
 #ifndef _CFLORA_CONFIG_H_
 #define _CFLORA_CONFIG_H_
-
 
 #define CF_INI_GOS_SECTION	"GOS"
 #define CF_INI_GOS_IP 		"IP"
@@ -8,7 +13,12 @@
 #define CF_INI_GOS_ID		"ID"
 #define CF_INI_GOS_TIMER	"TIMER"
 #define CF_INI_GOS_WRITE	"WRITE"
+#define CF_INI_GOS_UPDATE   "UPDATE"
+#define CF_INI_GOS_READ     "READ"
 #define CF_INI_GOS_RULE		"RULE"
+#define CF_INI_GOS_GCGNUM   "NGCG"
+#define CF_INI_GOS_LONGITUDE    "LONGITUDE"
+#define CF_INI_GOS_LATITUDE "LATITUDE"
 
 #define CF_INI_GCG_SECTION	"GCG"
 #define CF_INI_GCG_IP 		"IP"
@@ -41,6 +51,9 @@ cf_get_configitem (cf_ini_t *pini, const char *section, const char *name);
 
 int
 cf_get_configitem_int (cf_ini_t *pini, const char *section, const char *name);
+
+double
+cf_get_configitem_double (cf_ini_t *pini, const char *section, const char *name);
 
 void
 cf_release_ini (cf_ini_t *pini);
