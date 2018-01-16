@@ -16,7 +16,6 @@
 
 #include "gos_base.h"
 #include "gos_config.h"
-#include "gos_control.h"
 #include "gos_connection.h"
 #include "gos_device.h"
 #include "gos_rule.h"

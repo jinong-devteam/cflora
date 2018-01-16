@@ -18,7 +18,6 @@
 #include "gos_connection.h"
 #include "gos_device.h"
 #include "gos_process.h"
-#include "gos_control.h"
 #include "gos_rule.h"
 #include "gos_server.h"
 #include "gos_time.h"

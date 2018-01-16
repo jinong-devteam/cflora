@@ -7,7 +7,6 @@ install_manifest.txt
 CTestTestfile.cmake
 debug/*
 release/*
-lib/*
 *.o
 *.a
 *.so.*

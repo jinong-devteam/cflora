@@ -1,0 +1,3 @@
+check process gcg with pidfile /var/run/gcg.pid
+start program = "/etc/init.d/farmos_gcg start"
+stop program = "/etc/init.d/farmos_gcg stop"

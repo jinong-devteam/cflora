@@ -4,3 +4,6 @@
 [submodule "software/libtp3"]
 	path = lib/libtp3
 	url = https://github.com/ezfarm-farmcloud/libtp3.git
+[submodule "lib/libgnode"]
+	path = lib/libgnode
+	url = https://github.com/jinong-devteam/libgnode.git
