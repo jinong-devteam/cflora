@@ -92,7 +92,7 @@ gos_load_rules_acts (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
 	if (rc != OK) {
-		LOG(ERROR) << "database query execution (get rule action) failed. " << errmsg;
+		LOG(ERROR) << "database query execution (get rule action) failed.";
 		cf_db_free(errmsg);
 		return ERR;
 	}
@@ -158,7 +158,7 @@ gos_load_rules_exps (gos_rule_t *prule, int ruleid, cf_db_t *db) {
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
 	if (rc != OK) {
-		LOG(ERROR) << "database query execution (get rule expression) failed. " << errmsg;
+		LOG(ERROR) << "database query execution (get rule expression) failed. ";
 		cf_db_free(errmsg);
 		return ERR;
 	}
@@ -222,7 +222,7 @@ gos_load_rules (gos_ruleset_t *pruleset, cf_db_t *db) {
 
 	rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
 	if (rc != OK) {
-		LOG(ERROR) << "database query execution (get rules) failed. " << errmsg;
+		LOG(ERROR) << "database query execution (get rules) failed. ";
 		cf_db_free(errmsg);
 		return ERR;
 	}
@@ -358,7 +358,7 @@ gos_execute_action (gos_ract_t *pact, int num, int ruleid, cf_db_t *db) {
 
 		rc = cf_db_exec(db, query, NULL, 0, &errmsg);
 		if (rc != OK) {
-			LOG(ERROR) << "database error : " << errmsg;
+			LOG(ERROR) << "database error: command execution";
 			cf_db_free (errmsg);
 			CF_ROLLBACK (db);
 			return ERR;

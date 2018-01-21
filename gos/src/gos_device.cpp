@@ -182,7 +182,7 @@ gos_load_devinfo (gos_devinfo_t *pdevinfo, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (get devices) failed. " << errmsg;
+        LOG(ERROR) << "database query execution (get devices) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -367,7 +367,7 @@ gos_get_last_deviceid (cf_db_t *db) {
     sprintf (query, "select id from gos_devices where rowid = %d", rowid);
     rc = cf_db_get_table (db, query, &results, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"getting device id failed. " << errmsg;
+        LOG(ERROR) <<"getting device id failed. ";
         cf_db_free (errmsg);
         return _GOS_NO_ID;
     }
@@ -541,7 +541,7 @@ gos_load_isensor (gos_dev_t *pdev, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) << "db (get isensor value) failed. " << errmsg;
+        LOG(ERROR) << "db (get isensor value) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -565,7 +565,7 @@ gos_load_iactuator (gos_dev_t *pdev, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"db (get iactuator value) failed. " << errmsg;
+        LOG(ERROR) <<"db (get iactuator value) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1037,7 +1037,7 @@ gos_load_asensors (gos_dev_t *pdev, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (get device convertmap) failed. " << errmsg;
+        LOG(ERROR) <<"database query execution (get device convertmap) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1072,7 +1072,7 @@ gos_load_properties (gos_dev_t *pdev, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (get device convertmap) failed." << errmsg; 
+        LOG(ERROR) <<"database query execution (get device convertmap) failed.";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1132,7 +1132,7 @@ gos_load_convertinfo (gos_dev_t *pdev, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (get device convertmap) failed. " << errmsg; 
+        LOG(ERROR) <<"database query execution (get device convertmap) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1283,7 +1283,7 @@ gos_insert_control_history (gos_cmd_t *pcmd, cf_db_t *db) {
 
     rc = cf_db_exec(db, query, NULL, 0, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"control history error : " << query << " " << errmsg;
+        LOG(ERROR) << "control history error.";
         cf_db_free (errmsg);
         return ERR;
     }
@@ -1307,7 +1307,7 @@ gos_update_control (gos_cmd_t *pcmd, cf_db_t *db) {
 
     rc = cf_db_exec(db, query, NULL, 0, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"control update error : " << query << " " << errmsg;
+        LOG(ERROR) <<"control update error.";
         cf_db_free (errmsg);
         return ERR;
     }
@@ -1324,7 +1324,7 @@ gos_delete_control (gos_cmd_t *pcmd, cf_db_t *db) {
     sprintf (query, "delete from gos_control where id = %d", pcmd->id);
     rc = cf_db_exec(db, query, NULL, 0, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"control delete error : " << query << " " << errmsg;
+        LOG(ERROR) <<"control delete error.";
         cf_db_free (errmsg);
         return ERR;
     }
@@ -1513,7 +1513,7 @@ gos_read_commands (gos_devinfo_t *pdevinfo, cf_db_t *db) {
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) << "database query execution (read command) failed. " << errmsg;
+        LOG(ERROR) << "database query execution (read command) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1776,7 +1776,7 @@ gos_reset_sequence_of_control (cf_db_t *db) {
                             "union all select max(id) as id from gos_control_history h) t", 
                             &results, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) << "getting max control id failed. " << errmsg;
+        LOG(ERROR) << "getting max control id failed. ";
         cf_db_free (errmsg);
         maxid = 1;
     } else {
@@ -1788,7 +1788,7 @@ gos_reset_sequence_of_control (cf_db_t *db) {
     sprintf (query, "alter table gos_control auto_increment = %d", maxid);
     rc = cf_db_exec(db, query, NULL, 0, &errmsg); 
     if (rc != OK) {
-        LOG(ERROR) << "gos_control sequence setting failed : " << errmsg;
+        LOG(ERROR) << "gos_control sequence setting failed.";
         cf_db_free (errmsg);
         return ERR;
     }
@@ -1809,7 +1809,7 @@ gos_init_control (gos_config_t *pconfig) {
         "(select * from gos_control where status > 0 )", NULL, 0, &errmsg);
 
     if (rc != OK) {
-        LOG(ERROR) <<"move previous controls into history failed : " << errmsg;
+        LOG(ERROR) <<"move previous controls into history failed.";
         cf_db_free (errmsg);
         return ERR;
     }
@@ -1818,7 +1818,7 @@ gos_init_control (gos_config_t *pconfig) {
         "delete from gos_control where status != 0", NULL, 0, &errmsg);
 
     if (rc != OK) {
-        LOG(ERROR) <<"delete previous controls failed : " << errmsg;
+        LOG(ERROR) <<"delete previous controls failed.";
         cf_db_free (errmsg);
         return ERR;
     }

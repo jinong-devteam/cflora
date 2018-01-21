@@ -802,7 +802,7 @@ gos_default_load (gos_cvt_vsensor_arg_t *parg, int devid, cf_db_t *db, int vsidx
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (for getting devicemap) failed. " << errmsg;
+        LOG(ERROR) <<"database query execution (for getting devicemap) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
