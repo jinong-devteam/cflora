@@ -12,15 +12,15 @@
 
 void 
 cf_errormsg(const char *errfmt, ...) {
-  va_list argptr;
+    va_list argptr;
 
-  fflush(stdout);
+    fflush(stdout);
 
-  va_start(argptr, errfmt);
-  vfprintf(stderr, errfmt, argptr);
-  va_end(argptr);
+    va_start(argptr, errfmt);
+    vfprintf(stderr, errfmt, argptr);
+    va_end(argptr);
 
-  fflush(stderr);  // redundant
+    fflush(stderr);  // redundant
 }
 
 #ifdef __CF_MEM_DEBUG__
