@@ -31,7 +31,7 @@ gos_default_config (gos_config_t *pconfig) {
 
     (pconfig->gcgids)[0] = GOS_DEFAULT_GCGID;
 
-    if (OK != cf_init_db (&(pconfig->db), GOS_DEFAULT_DB)) {
+    if (OK != cf_init_db (&(pconfig->db), (char *)GOS_DEFAULT_DB)) {
         CF_FREE (pconfig->gcgids);
         LOG(ERROR) << "configuration memory allocation failed.";
         return ERR;

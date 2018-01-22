@@ -59,21 +59,21 @@ typedef enum {
 #define _GOS_VSENS_MAX      15
 
 static char *_str_vsensor[_GOS_VSENS_MAX] = {
-    "_gos_dnwhumidity",
-    "_gos_dnwdewpoint",
-    "_gos_dailyaccum",
-    "_gos_moveavg",
-    "_gos_actrtime",
-    "_gos_motpos",
-    "_gos_windside",
-    "_gos_opvsen",
-    "_gos_current",
-    "_gos_lasttime",
-    "_gos_file",
-    "_gos_sharedmem",
-    "_gos_sunrise",
-    "_gos_sunset",
-    "_gos_tempcomp",
+    (char *)"_gos_dnwhumidity",
+    (char *)"_gos_dnwdewpoint",
+    (char *)"_gos_dailyaccum",
+    (char *)"_gos_moveavg",
+    (char *)"_gos_actrtime",
+    (char *)"_gos_motpos",
+    (char *)"_gos_windside",
+    (char *)"_gos_opvsen",
+    (char *)"_gos_current",
+    (char *)"_gos_lasttime",
+    (char *)"_gos_file",
+    (char *)"_gos_sharedmem",
+    (char *)"_gos_sunrise",
+    (char *)"_gos_sunset",
+    (char *)"_gos_tempcomp",
 };
 
 double
@@ -144,10 +144,11 @@ _gos_get_dailyaccumulation (gos_devinfo_t *pdevinfo, void *config, double *nvalu
         return ERR;
     }
 
-    //LOG(INFO) << "Daily Accum : day [" << pconfig->today << "] today [" << ptm->tm_mday << "].";
     if (pconfig->today != ptm->tm_mday) {
+    	LOG(INFO) << "Daily Accum : day changes [" << pconfig->today << "] today [" << ptm->tm_mday << "].";
         pconfig->previous = 0;
         pconfig->today = ptm->tm_mday;
+        (pdev->range).skip = 1;		// 날이 바뀌었으니 센서속성값 체크를 하지 않음.
     }
 
     gap = current - pconfig->last;

@@ -103,7 +103,7 @@ gos_check_restart (gos_server_t *pserver, gos_config_t *pconfig) {
     CF_EXECUTE_GET_INT (db, "select restart from gos_configuration", &restart);
 
     if (restart) {
-        CF_EXECUTE ( db , "update gos_configuration set restart=0" ) ;
+        CF_EXECUTE (db, "update gos_configuration set restart=0");
         gos_set_restart (gos_get_server (), restart);
         uv_timer_stop(&(pserver->timer));
         uv_stop (uv_default_loop ());
