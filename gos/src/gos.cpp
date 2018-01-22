@@ -127,8 +127,8 @@ main (int argc, char **argv) {
 
         LOG (INFO) << "GOS Initialized";
         gos_execute ();
-        gos_finalize ();
-        sleep(1) ;
+        //gos_finalize ();
+        //sleep(1) ;
     } while (gos_get_restart (gos_get_server()));
 
     return 0;
