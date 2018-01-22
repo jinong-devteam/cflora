@@ -260,7 +260,6 @@ _gos_get_opvsensor (gos_devinfo_t *pdevinfo, void *config, double *nvalue) {
         return ERR;
     }
 
-    LOG(INFO) << "two value : " << pfdev->nvalue << psdev->nvalue;
 
     switch (pconfig->optype) {
         case OP_PLUS:
@@ -292,6 +291,9 @@ _gos_get_opvsensor (gos_devinfo_t *pdevinfo, void *config, double *nvalue) {
         default:
              break;
     }
+
+    LOG(INFO) << "opv sensor two value : " << pfdev->nvalue << " (?) " << psdev->nvalue << " = " << *nvalue;
+
     return OK;
 }
 
@@ -392,7 +394,7 @@ _gos_get_statoftwodevices (gos_dev_t *pself, gos_devinfo_t *pdevinfo, void *conf
     gos_dev_t *pf = gos_find_device (pdevinfo, pconfig->first_id);
     gos_dev_t *ps = gos_find_device (pdevinfo, pconfig->second_id);
 
-    LOG(INFO) << "stat two device id  : " << pconfig->first_id << pconfig->second_id;
+    //LOG(INFO) << "stat two device id  : " << pconfig->first_id << "," << pconfig->second_id;
     if (pf == NULL || ps == NULL) {
         LOG(ERROR) << "not found target physical sensors for two arguments virtual sensor status";
         return ERR;
