@@ -23,41 +23,41 @@
 #include "gos_vsensor.h"
 
 static char *_str_status[_GOS_DEVSTAT_MAX] = {
-    "activated",
-    "installed",
-    "detected",
-    "suspended",
-    "abnormal",
-    "disconnected"
+    (char *)"activated",
+    (char *)"installed",
+    (char *)"detected",
+    (char *)"suspended",
+    (char *)"abnormal",
+    (char *)"disconnected"
 };
 
 static char *_str_type[_GOS_DEVTYPE_MAX] = {
-    "gos",
-    "gcg",
-    "snode",
-    "anode",
-    "sensor",
-    "actuator",
-    "cctv",
-    "vsensor",
-    "asensor",
-    "iactuator",
-    "isensor",
-    "unknown"
+    (char *)"gos",
+    (char *)"gcg",
+    (char *)"snode",
+    (char *)"anode",
+    (char *)"sensor",
+    (char *)"actuator",
+    (char *)"cctv",
+    (char *)"vsensor",
+    (char *)"asensor",
+    (char *)"iactuator",
+    (char *)"isensor",
+    (char *)"unknown"
 };
 
 static char *_str_convert[_GOS_CVTTYPE_MAX] = {
-    "none",
-    "linear",
-    "tablemap",
-    "ratio",
-    "oratio",
-    "vsensor"
+    (char *)"none",
+    (char *)"linear",
+    (char *)"tablemap",
+    (char *)"ratio",
+    (char *)"oratio",
+    (char *)"vsensor"
 };
 
 static char *_str_asensor[_GOS_ASENSOR_MAX] = {
-    "limiter",
-    "anglesensor"
+    (char *)"limiter",
+    (char *)"anglesensor"
 };
 
 int
@@ -159,6 +159,7 @@ gos_init_sensor_range (gos_dev_t *pdev, cf_db_t *db) {
     (pdev->range).minvalue = 0;
     (pdev->range).maxvalue = 0;
     (pdev->range).maxdiff = 0;
+    (pdev->range).skip = 0;
 
     if (ERR == gos_load_properties (pdev, db)) {
         LOG(ERROR) <<"Fail to loading properties of a sensor (" << pdev->id << ").";
@@ -174,7 +175,7 @@ gos_init_sensor_range (gos_dev_t *pdev, cf_db_t *db) {
 
 ret_t
 gos_load_devinfo (gos_devinfo_t *pdevinfo, cf_db_t *db) {
-    char *query = "select id, devtype, status, gcg_id, node_id, dev_id from gos_devices order by id asc";
+    char *query = (char *)"select id, devtype, status, gcg_id, node_id, dev_id from gos_devices order by id asc";
     char **result;
     char *errmsg;
     int rows, columns, rc, i;
@@ -384,7 +385,7 @@ gos_sync_devices (gos_devinfo_t *pdevinfo, gos_config_t *pconfig) {
     gos_dev_t *pdev;
     cf_db_stmt *stmt;
     const char *tail;
-    char *query = "INSERT INTO gos_devices (type, status, gcg_id, node_id, g_id) VALUES (?, ?, ?, ?, ?)";
+    char *query = (char *)"INSERT INTO gos_devices (type, status, gcg_id, node_id, g_id) VALUES (?, ?, ?, ?, ?)";
 
     if (cf_db_open (db)) {
         LOG(ERROR) << "database open failed.";
@@ -456,7 +457,7 @@ gos_sync_devices (gos_devinfo_t *pdevinfo, gos_config_t *pconfig) {
 ret_t
 gos_update_env (gos_dev_t *pdev, double nvalue, int rawvalue, time_t updatetime) {
     if (pdev->nvalue != nvalue) {
-        if ((pdev->range).use) {
+        if ((pdev->range).use && (pdev->range).skip == 0) {
             if ((nvalue > (pdev->range).maxvalue)
                 || (nvalue < (pdev->range).minvalue)) {
                 // not acceptable range
@@ -472,6 +473,7 @@ gos_update_env (gos_dev_t *pdev, double nvalue, int rawvalue, time_t updatetime)
                 return OK;
             } 
         } 
+        (pdev->range).skip = 0;	// 1 회 스킵 제거
 
         pdev->nvalue = nvalue;
         if (updatetime == 0) 
@@ -614,6 +616,7 @@ gos_write_sensor_env (gos_dev_t *pdev, cf_db_t *db) {
     return OK;
 }
 
+/*
 ret_t
 gos_write_sensor_env_from_db (gos_dev_t *pdev, cf_db_t *db) {
     char query[_GOS_BUF_LEN];
@@ -626,6 +629,7 @@ gos_write_sensor_env_from_db (gos_dev_t *pdev, cf_db_t *db) {
     LOG(INFO) << "write env [" << pdev->id << "] from db " << query;
     return OK;
 }
+*/
 
 ret_t
 gos_write_actuator_env (gos_dev_t *pdev, cf_db_t *db) {
@@ -1109,14 +1113,10 @@ gos_load_driver (gos_dev_t *pdev, cf_db_t *db) {
     return ERR;
 }
 
-gos_cvt_t 
-operator ++(gos_cvt_t &cur, int ) {
-    gos_cvt_t current = cur;
-
-    if (GOS_CVT_VSENSOR < cur + 1) cur = GOS_CVT_NONE;
-    else cur = static_cast<gos_cvt_t>(cur + 1);
-
-    return current;
+inline gos_cvt_t 
+operator++(gos_cvt_t &cur) {
+    cur = static_cast<gos_cvt_t>(static_cast<int>(cur) + 1);
+    return cur;
 }
 
 ret_t
@@ -1127,12 +1127,11 @@ gos_load_convertinfo (gos_dev_t *pdev, cf_db_t *db) {
     int rows, columns, rc;
     gos_cvt_t cvt;
 
-
     sprintf(query, "select ctype, configuration, offset from gos_device_convertmap where device_id = %d", pdev->id);
 
     rc = cf_db_get_table (db, query, &result, &rows, &columns, &errmsg);
     if (rc != OK) {
-        LOG(ERROR) <<"database query execution (get device convertmap) failed. ";
+        LOG(ERROR) << "database query execution (get device convertmap) failed. ";
         cf_db_free(errmsg);
         return ERR;
     }
@@ -1143,13 +1142,15 @@ gos_load_convertinfo (gos_dev_t *pdev, cf_db_t *db) {
         return ERR;
     }
 
-    for (cvt = GOS_CVT_NONE; cvt < _GOS_CVTTYPE_MAX; cvt++) {
+    for (cvt = GOS_CVT_NONE; cvt < _GOS_CVTTYPE_MAX; ++cvt) {
         if (strcmp (_str_convert[cvt], result[3]) == 0) {
             pdev->cvt = cvt;
             if (cvt == GOS_CVT_VSENSOR) {
                 pdev->cvtarg = gos_generate_vsensor_arg (pdev, result[4], atof(result[5]), db);
+                LOG(INFO) << "device[" << pdev->id << "] vsensor arguments are loaded.";
             } else if (cvt != GOS_CVT_NONE) {
                 pdev->cvtarg = gos_generate_cvt_arg (pdev, result[4], atof(result[5]));
+                LOG(INFO) << "device[" << pdev->id << "] converting arguments are loaded.";
             } else {
                 pdev->cvtarg = NULL;
             }
@@ -1522,7 +1523,7 @@ gos_read_commands (gos_devinfo_t *pdevinfo, cf_db_t *db) {
     pass_deviceid = -1;
     autocontrolmode = gos_check_auto_control (gos_get_server (), gos_get_config ());
 
-    LOG(INFO) << "There are " << rows << " commands in the gos_control table.";
+    //LOG(INFO) << "There are " << rows << " commands in the gos_control table.";
     for (i = 1; i <= rows; i++) {
         gos_load_command_from_result (&cmd, result, i * columns);
 
@@ -1686,9 +1687,8 @@ gos_check_actuator_working_status (gos_dev_t *pdev, cf_db_t *db) {
 
     gos_parse_actuator_argument (pdev->rawvalue, &arg, &tm);
 
-    LOG(INFO) << "The status of an actuator [" << pdev->id << "] is (arg : " << arg << ", tm : " << tm << ").";
-    LOG(INFO) << "The status of commands [" << pcmd->id << pnewcmd->id 
-        << "] are (" << pcmd->stat << pnewcmd->stat << ").";
+    //LOG(INFO) << "The status of an actuator [" << pdev->id << "] is (arg : " << arg << ", tm : " << tm << ").";
+    //LOG(INFO) << "The status of commands [" << pcmd->id << pnewcmd->id << "] are (" << pcmd->stat << pnewcmd->stat << ").";
 
     if (tm > 0) {    // still working
         // 임시동작시간 세팅
@@ -1740,7 +1740,7 @@ gos_select_and_send_command (gos_devinfo_t *pdevinfo, gos_conninfo_t *pconninfo,
         pdev = pdevinfo->pdev + i;
         //if (pdev->type == GOS_DEV_ACTUATOR) {
         if (gos_is_actuator (pdev)) {
-            LOG(INFO) << "A actuator [" << pdev->id << "] would be tested for control.";
+            //LOG(INFO) << "A actuator [" << pdev->id << "] would be tested for control.";
 
             // actuator 동작 상태/완료 체크
             gos_check_actuator_working_status (pdev, db);
