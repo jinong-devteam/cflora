@@ -76,4 +76,10 @@ typedef struct {
     void *shm;
 } gos_shmvsen_config_t;
 
+#define _GOS_VSEN_AVG_MAX   10
+typedef struct {
+    int cnt;
+    int devids[_GOS_VSEN_AVG_MAX];
+} gos_avgvsen_config_t;
+
 #endif

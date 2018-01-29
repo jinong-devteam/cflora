@@ -36,7 +36,6 @@
 #define _GOS_VS_SECONDOP    "second operand"
 #define _GOS_VS_LONGITUDE   "longitude"
 #define _GOS_VS_LATITUDE    "latitude"
-#define _GOS_VS_LATITUDE    "latitude"
 
 typedef enum {
     GOS_VSENS_DNWHUM = 1,
@@ -53,10 +52,11 @@ typedef enum {
     GOS_VSENS_SHAREDMEM = 12,
     GOS_VSENS_SUNRISESEC = 13,
     GOS_VSENS_SUNSETSEC = 14,
-    GOS_VSENS_TEMPCOMP = 15,
+    GOS_VSENS_AVGSEN = 15,
+    GOS_VSENS_TEMPCOMP = 16,
 } gos_vsenstype_t;
 
-#define _GOS_VSENS_MAX      15
+#define _GOS_VSENS_MAX      16
 
 static char *_str_vsensor[_GOS_VSENS_MAX] = {
     (char *)"_gos_dnwhumidity",
@@ -73,6 +73,7 @@ static char *_str_vsensor[_GOS_VSENS_MAX] = {
     (char *)"_gos_sharedmem",
     (char *)"_gos_sunrise",
     (char *)"_gos_sunset",
+    (char *)"_gos_avgvsen",
     (char *)"_gos_tempcomp",
 };
 
@@ -182,6 +183,30 @@ _gos_get_movingaverage (gos_devinfo_t *pdevinfo, void *config, double *nvalue) {
     *nvalue = ((pconfig->previous) * (pconfig->number - 1) + pdev->nvalue) 
                 / pconfig->number;
     pconfig->previous = *nvalue;
+
+    return OK;
+}
+
+ret_t
+_gos_get_avgvsen (gos_devinfo_t *pdevinfo, void *config, double *nvalue) {
+    gos_avgvsen_config_t *pconfig = (gos_avgvsen_config_t *)config;
+    int i, n;
+    double temp = 0;
+
+    for (i = 0, n = 0; i < pconfig->cnt; i++, n++) {
+        gos_dev_t *pdev = gos_find_device (pdevinfo, (pconfig->devids)[i]);
+        if (pdev == NULL) {
+            LOG(ERROR) << "not found target physical sensor [" 
+                << (pconfig->devids)[i] << "] for an average virtual sensor.";
+            n--;
+        }
+        temp += pdev->nvalue;
+    }
+
+    if (n > 0)
+        *nvalue = temp / n;
+    else
+        *nvalue = 0;
 
     return OK;
 }
@@ -635,6 +660,34 @@ _gos_load_opvsensor (int devid, gos_cvt_vsensor_arg_t *parg, char **result, int 
 }
 
 ret_t
+_gos_load_avgvsen (int devid, gos_cvt_vsensor_arg_t *parg, char **result, int rows, int columns) {
+    int i;
+    gos_avgvsen_config_t *pconfig;
+
+    parg->_get_value = _gos_get_avgvsen;
+    parg->_get_stat = _gos_get_statofnodevice;
+    parg->_release_config = _gos_release_common;
+    pconfig = (gos_avgvsen_config_t *)CF_MALLOC (sizeof(gos_avgvsen_config_t));
+    if (pconfig == NULL) {
+        LOG(ERROR) << "memory allocation for average virtual sensor argument failed";
+        return ERR;
+    }
+
+    pconfig->cnt = 0;
+    for (i = 1; i <= rows; i++) {
+        if (strcmp (result[i * columns], _GOS_VS_DEVICE) == 0) {
+            (pconfig->devids)[pconfig->cnt]= atoi (result[i * columns + 1]);
+            (pconfig->cnt)++;
+            LOG(INFO) << "avgvsen " << pconfig->cnt << "th device_id[" 
+                << (pconfig->devids)[pconfig->cnt - 1]<< "]";
+        }
+    }
+    parg->config = (void *)pconfig;
+    
+    return OK;
+}
+
+ret_t
 _gos_load_current (int devid, gos_cvt_vsensor_arg_t *parg, char **result, int rows, int columns) {
     gos_vsensor_config_t *pconfig;
 
@@ -784,6 +837,7 @@ static _gos_load_vsensor_config_func _load_funcs[_GOS_VSENS_MAX] = {
     _gos_load_sharedmem,
     _gos_load_sunrisesec,
     _gos_load_sunsetsec,
+    _gos_load_avgvsen,
 };
 
 ret_t
