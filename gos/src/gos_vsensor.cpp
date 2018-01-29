@@ -682,6 +682,10 @@ _gos_load_avgvsen (int devid, gos_cvt_vsensor_arg_t *parg, char **result, int ro
             (pconfig->cnt)++;
             LOG(INFO) << "avgvsen " << pconfig->cnt << "th device_id[" 
                 << (pconfig->devids)[pconfig->cnt - 1]<< "]";
+            if (pconfig->cnt >= _GOS_VSEN_AVG_MAX) {
+                LOG(ERROR) << "Number of devices for average vsensor is over.";
+                return ERR;
+            }
         }
     }
     parg->config = (void *)pconfig;
