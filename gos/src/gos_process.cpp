@@ -221,41 +221,41 @@ gos_connmsg_cb (ptp3_msg_t preq, ptp3_msg_t pres, void *data) {
 
 void
 gos_timer_cb (uv_timer_t *handle) {
-	static int ncnt = 0 ;
-	cf_db_t *db = &(gos_get_config ()->db);
-	gos_config_t *pconfig ;
+    static int ncnt = 0 ;
+    cf_db_t *db = &(gos_get_config ()->db);
+    gos_config_t *pconfig ;
 
-	gos_gettime_timer ();
+    gos_gettime_timer ();
 
-	if (cf_db_open (db)) {
+    if (cf_db_open (db)) {
         LOG(ERROR) << "database open failed in timer callback.";
         return;
     }
 
-	ncnt++;
+    ncnt++;
 
-	pconfig = gos_get_config ();
-	gos_read_devinfo (gos_get_devinfo (), gos_get_config ());
+    pconfig = gos_get_config ();
+    gos_read_devinfo (gos_get_devinfo (), gos_get_config ());
 
-	if (ncnt % pconfig->nupdate == 0) {
-		LOG(INFO) << "Update environment infomation to db.";
-		gos_update_devinfo (gos_get_devinfo (), gos_get_config ());
-	}
+    if (ncnt % pconfig->nupdate == 0) {
+        LOG(INFO) << "Update environment infomation to db.";
+        gos_update_devinfo (gos_get_devinfo (), gos_get_config ());
+    }
 
-	if (ncnt % pconfig->nwrite == 0) {
-		LOG(INFO) << "Write device infomation to db.";
-		gos_write_devinfo (gos_get_devinfo (), gos_get_config ());
-	}
+    if (ncnt % pconfig->nwrite == 0) {
+        LOG(INFO) << "Write device infomation to db.";
+        gos_write_devinfo (gos_get_devinfo (), gos_get_config ());
+    }
 
-	if (ncnt % pconfig->nrule == 0 && gos_check_auto_control (gos_get_server (), pconfig)) {
-		LOG(INFO) << "Evaluate rules.";
-		gos_evaluate_rules (gos_get_ruleset (), pconfig);
-		gos_reset_rulecondition (gos_get_ruleset ());
-	}
+    if (ncnt % pconfig->nrule == 0 && gos_check_auto_control (gos_get_server (), pconfig)) {
+        LOG(INFO) << "Evaluate rules.";
+        gos_evaluate_rules (gos_get_ruleset (), pconfig);
+        gos_reset_rulecondition (gos_get_ruleset ());
+    }
 
-	gos_control (gos_get_devinfo (), pconfig, gos_get_conninfo ());
+    gos_control (gos_get_devinfo (), pconfig, gos_get_conninfo ());
 
-	gos_check_restart (gos_get_server (), pconfig);
+    gos_check_restart (gos_get_server (), pconfig);
 
-	cf_db_close (db);
+    cf_db_close (db);
 }

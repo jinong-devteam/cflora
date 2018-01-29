@@ -107,6 +107,7 @@ gos_check_restart (gos_server_t *pserver, gos_config_t *pconfig) {
         gos_set_restart (gos_get_server (), restart);
         uv_timer_stop(&(pserver->timer));
         uv_stop (uv_default_loop ());
+        gos_finalize ();
     }
 
     return OK;
@@ -329,7 +330,7 @@ gos_initialize (char *conffile) {
         return ERR;
     }
 
-    LOG(INFO) << "GOS read configuration " << conffile;
+    LOG(INFO) << "GOS read configuration." << conffile;
     if (cf_db_open (db)) {
         LOG(ERROR) << "database open failed.";
         return ERR;
@@ -380,5 +381,4 @@ gos_finalize () {
     gos_release_devinfo (&(gosdata.devinfo));
     gos_release_conninfo (&(gosdata.conninfo));
     gos_release_rules (&(gosdata.ruleset));
-
 }
