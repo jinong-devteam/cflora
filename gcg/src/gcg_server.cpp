@@ -60,11 +60,6 @@ gcg_get_gnodegcghelper () {
     return &(gcgdata.helper);
 }
 
-void
-gos_close_timer (uv_handle_t *handle) {
-    ;
-}
-
 void 
 gcg_on_close(uv_handle_t *peer) {
     //CF_FREE (peer);
