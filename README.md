@@ -23,6 +23,7 @@ FarmOS 는 다음의 오픈소스를 사용하고 있습니다.
 * [iniparser](https://github.com/ndevilla/iniparser)
 * [libtp3](https://github.com/ezfarm-farmcloud/libtp3)
 * [libgnode](https://github.com/jinong-devteam/libgnode)
+* [glog](https://github.com/google/glog)
 
 iniparser 와 libtp3는 git submodule 로 연동되어 있습니다. 따라서 다음과 같이 입력하면 컴파일을 위한 소스들을 받아올 수 있습니다.
 ```
@@ -41,10 +42,15 @@ make
 make install
 ```
 
+glog는 다음과 같이 설치 가능합니다.
+```
+sudo apt install  libgoogle-glog-dev
+```
+
 * [mysql](https://www.mysql.com)
 mysql 은 사용하는 OS에 따라 적절히 설치하면 됩니다. debian 계열의 Ubuntu나 Rasibian 등을 사용하는 경우에는 다음과 같이 설치할 수 있습니다.
 ```
-sudo apt install mysql-server
+sudo apt install mysql-server libmysqlclient20 libmysqlclient-dev
 ```
 
 ### Getting Source 
